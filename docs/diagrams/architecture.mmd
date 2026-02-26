@@ -1,0 +1,89 @@
+---
+title: System Architecture
+---
+graph TB
+    subgraph EntryPoints["Entry Points"]
+        MAIN[src/main.py]
+        CLI[backtester/cli.py]
+        DASH[src/dashboard.py]
+        API[REST API :8080]
+    end
+
+    subgraph Core["Core Engine (src/core/)"]
+        BOT[bot.py\nMain Event Loop]
+        EXMGR[exchange_manager.py]
+        EXADP[exchange_adapter.py\nCCXT Wrapper]
+        RISK[risk_manager.py]
+        SIZER[confidence_position_sizer.py]
+        DB[database.py]
+        NOTIF[telegram_notifier.py]
+    end
+
+    subgraph Strategies["Strategies (src/strategies/)"]
+        STRMGR[strategy_manager.py]
+        BASE[base_strategy.py]
+        MULTI[enhanced_multi_indicator.py]
+        TREND[simple_trend.py]
+    end
+
+    subgraph ML["ML Layer (src/)"]
+        PRED[predictor.py\nEnsemble]
+        MLMOD[ml_models.py\nGB / RF / LSTM]
+        SENT[sentiment.py]
+        SENTADV[sentiment_advanced.py\nBERT]
+        PPO[train_ppo_agent.py\nRL Agent]
+    end
+
+    subgraph Data["Data Pipeline (src/)"]
+        FETCH[data_fetcher.py]
+        TREND2[trend_analyzer.py]
+        OPT[optimizer.py\nOptuna]
+    end
+
+    subgraph Exchanges["Exchanges"]
+        BIN[Binance]
+        BYB[Bybit]
+        CCXT[CCXT Library]
+    end
+
+    subgraph Infra["Infrastructure"]
+        CELERY[celery_app.py]
+        METRICS[metrics.py\nPrometheus]
+        DOCKER[Docker / K8s]
+    end
+
+    MAIN --> BOT
+    CLI --> BOT
+    DASH --> API
+    API --> BOT
+
+    BOT --> EXMGR
+    BOT --> STRMGR
+    BOT --> RISK
+    BOT --> PRED
+    BOT --> FETCH
+    BOT --> DB
+    BOT --> NOTIF
+
+    EXMGR --> EXADP
+    EXADP --> CCXT
+    CCXT --> BIN
+    CCXT --> BYB
+
+    STRMGR --> MULTI
+    STRMGR --> TREND
+    MULTI --> BASE
+    TREND --> BASE
+
+    RISK --> SIZER
+    PRED --> MLMOD
+    PRED --> SENT
+    SENT --> SENTADV
+    MLMOD --> PPO
+
+    FETCH --> TREND2
+    TREND2 --> STRMGR
+    TREND2 --> PRED
+
+    BOT --> CELERY
+    METRICS --> DOCKER

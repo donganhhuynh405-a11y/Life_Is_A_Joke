@@ -1,0 +1,63 @@
+---
+title: Trading Bot Data Flow
+---
+flowchart LR
+    subgraph Ingestion["1  Market Data Ingestion"]
+        EX[(Exchange\nBinance / Bybit)]
+        WS[WebSocket\nor REST Poll]
+        CACHE[(Data Cache\nMemory / Redis)]
+        EX -->|OHLCV + Order Book| WS
+        WS --> CACHE
+    end
+
+    subgraph Features["2  Feature Engineering"]
+        FETCH[data_fetcher.py]
+        TA[trend_analyzer.py]
+        IND["Indicators\nRSI · MACD · BB · ATR · EMA"]
+        CACHE --> FETCH
+        FETCH --> TA
+        TA --> IND
+    end
+
+    subgraph Signals["3  Signal Generation"]
+        STRAT[Strategy\nMACD+RSI / Multi-Indicator]
+        ML[ML Ensemble\nGB · RF · LSTM]
+        SENT[Sentiment\nBERT / VADER]
+        VOTE{Confidence\nWeighted Vote}
+        IND --> STRAT
+        IND --> ML
+        NEWS[(News / Social\nData)] --> SENT
+        STRAT --> VOTE
+        ML --> VOTE
+        SENT --> VOTE
+    end
+
+    subgraph Risk["4  Risk Gating"]
+        RM[risk_manager.py]
+        SIZER[confidence_position_sizer.py]
+        CHECKS{Pass?}
+        VOTE -->|Signal + Confidence| RM
+        RM --> SIZER
+        SIZER --> CHECKS
+    end
+
+    subgraph Execution["5  Order Execution"]
+        EXEC[executor.py]
+        EXADP[exchange_adapter.py]
+        ORD[(Order\nPlaced)]
+        CHECKS -->|Yes| EXEC
+        CHECKS -->|No / HOLD| SKIP[Skip Cycle]
+        EXEC --> EXADP
+        EXADP -->|API Call| ORD
+    end
+
+    subgraph Reporting["6  Reporting & Monitoring"]
+        DB[(Database\nSQLite / PostgreSQL)]
+        TG[Telegram\nNotification]
+        PROM[Prometheus\nMetrics]
+        LOG[Logs]
+        ORD --> DB
+        ORD --> TG
+        DB --> PROM
+        EXEC --> LOG
+    end
