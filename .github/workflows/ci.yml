@@ -43,7 +43,7 @@ jobs:
       - name: Install test dependencies
         run: |
           pip install --upgrade pip
-          pip install pytest pytest-asyncio pytest-mock pytest-cov pandas numpy cachetools
+          pip install -r requirements-test.txt
 
       - name: Run tests
         run: |
