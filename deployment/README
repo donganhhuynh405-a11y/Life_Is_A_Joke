@@ -1,0 +1,16 @@
+# Crypto AI Trading Bot (Scaffold)
+
+This repository contains a production-oriented scaffold for a multi-service crypto trading bot targeting Binance Futures and DeFi.
+
+Run locally (paper trading):
+
+1. Build image:
+```
+docker build -t crypto-bot:local .
+```
+2. Start services:
+```
+docker-compose up --build
+```
+
+Configuration: edit `config.yaml` and supply secrets via AWS Secrets Manager or environment variables.
