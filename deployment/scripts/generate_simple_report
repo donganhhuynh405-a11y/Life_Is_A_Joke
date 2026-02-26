@@ -1,0 +1,23 @@
+import os
+import random
+from src.reporter import Reporter
+from datetime import datetime
+
+def make_sample():
+    cfg = {'report':{'output_dir':'./reports'}}
+    r = Reporter(cfg)
+    metrics = {
+        'PNL_total': round(random.uniform(500,2000),2),
+        'PNL_weekly': round(random.uniform(100,800),2),
+        'Sharpe': round(random.uniform(1.5,3.5),2),
+        'MaxDrawdown': f"{round(random.uniform(0.5,4.5),2)}%",
+        'WinRate': f"{round(random.uniform(60,90),2)}%",
+        'Trades': random.randint(10,200)
+    }
+    trades = []
+    os.makedirs('./reports', exist_ok=True)
+    pdf_path = r.generate_weekly_report(metrics, trades, filename=f"sample_weekly_{datetime.utcnow().strftime('%Y%m%d')}.pdf")
+    print('Generated:', pdf_path)
+
+if __name__ == '__main__':
+    make_sample()
