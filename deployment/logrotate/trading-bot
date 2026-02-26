@@ -1,0 +1,113 @@
+# Trading Bot - Log Rotation Configuration
+# This file manages log rotation for the trading bot application
+# Place this file in /etc/logrotate.d/trading-bot
+
+# Main application logs
+/var/log/trading-bot/*.log {
+    # Rotate logs daily
+    daily
+    
+    # Keep 30 days of logs
+    rotate 30
+    
+    # Compress rotated logs
+    compress
+    
+    # Delay compression to next rotation cycle
+    # This allows time for processes to finish writing
+    delaycompress
+    
+    # Don't error if log file is missing
+    missingok
+    
+    # Don't rotate empty logs
+    notifempty
+    
+    # Create new log file after rotation
+    create 0644 tradingbot tradingbot
+    
+    # Use date as suffix for rotated files
+    dateext
+    dateformat -%Y%m%d
+    
+    # Maximum size before rotation (regardless of time)
+    size 100M
+    
+    # Shared scripts for all log files
+    sharedscripts
+    
+    # Post-rotation script
+    postrotate
+        # Reload application if it's running (optional)
+        if systemctl is-active --quiet trading-bot.service; then
+            systemctl reload trading-bot.service > /dev/null 2>&1 || true
+        fi
+    endscript
+}
+
+# Database logs (if using PostgreSQL)
+/var/log/trading-bot/database/*.log {
+    daily
+    rotate 14
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0644 tradingbot tradingbot
+    dateext
+    size 50M
+}
+
+# Backup logs
+/var/log/trading-bot/backup.log {
+    weekly
+    rotate 12
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0644 tradingbot tradingbot
+    dateext
+}
+
+# Error logs (separate handling for high priority)
+/var/log/trading-bot/error.log {
+    daily
+    rotate 90
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0644 tradingbot tradingbot
+    dateext
+    size 50M
+    
+    # Email notification if error log is not empty
+    # mail admin@example.com
+}
+
+# Access logs
+/var/log/trading-bot/access.log {
+    daily
+    rotate 30
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0644 tradingbot tradingbot
+    dateext
+    size 100M
+}
+
+# Trading logs (high volume, shorter retention)
+/var/log/trading-bot/trades/*.log {
+    daily
+    rotate 60
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0644 tradingbot tradingbot
+    dateext
+    size 200M
+}
