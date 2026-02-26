@@ -1,0 +1,242 @@
+# Environment
+environment: "paper"  # paper, testnet, production
+log_level: "INFO"
+timezone: "UTC"
+
+# Exchanges
+exchanges:
+  binance:
+    enabled: true
+    type: "spot"  # spot, future
+    testnet: true
+    rate_limit: true
+    options:
+      defaultType: "spot"
+      adjustForTimeDifference: true
+  
+  bybit:
+    enabled: false
+    type: "future"
+    testnet: true
+  
+  # Add more as needed
+
+# Trading Settings
+trading:
+  # Symbols to trade
+  symbols:
+    - "BTC/USDT"
+    - "ETH/USDT"
+    - "SOL/USDT"
+  
+  # Timeframes for analysis
+  timeframes:
+    primary: "1h"
+    secondary: "15m"
+    weekly: "1w"
+  
+  # Strategy
+  strategy: "classic_macd_rsi"
+  
+  # Risk Management
+  risk:
+    max_position_pct: 10.0      # Max 10% per position
+    max_portfolio_risk: 20.0    # Max 20% total exposure
+    stop_loss_pct: 3.0          # 3% stop loss
+    take_profit_pct: 6.0        # 6% take profit (1:2 risk/reward)
+    trailing_stop_activation: 2.0  # Activate at 2% profit
+    trailing_stop_pct: 1.5         # 1.5% trailing stop
+  
+  # Position Sizing
+  position_sizing:
+    method: "kelly"  # fixed, kelly, percent
+    kelly_fraction: 0.5  # Half Kelly
+    fixed_percent: 2.0
+  
+  # Filters
+  filters:
+    min_24h_volume: 1000000    # $1M minimum
+    min_price: 0.01
+    exclude_stablecoins: true
+    exclude_memecoins: false
+
+# Data Settings
+data:
+  # Historical data
+  history_days: 365
+  update_interval: 300  # 5 minutes
+  
+  # Candles to fetch per symbol
+  candle_limit: 500
+  
+  # Data sources
+  sources:
+    - "exchange"
+    - "alternative"  # backup
+  
+  # Cache settings
+  cache_enabled: true
+  cache_ttl: 3600  # 1 hour
+
+# Strategy Parameters
+strategies:
+  classic_macd_rsi:
+    enabled: true
+    # MACD parameters
+    macd_fast: 12
+    macd_slow: 26
+    macd_signal: 9
+    
+    # RSI parameters
+    rsi_period: 14
+    rsi_overbought: 70
+    rsi_oversold: 30
+    
+    # EMA trend filter
+    ema_short: 20
+    ema_long: 50
+    
+    # ATR volatility filter
+    atr_period: 14
+    min_atr_pct: 0.5
+    
+    # Bollinger Bands
+    bb_period: 20
+    bb_std: 2.0
+    
+    # Signal thresholds
+    min_confidence: 0.6
+    required_confirmations: 2  # out of 3 indicators
+
+# Execution Settings
+execution:
+  # Order types
+  order_type: "market"  # market, limit
+  limit_order_premium: 0.001  # 0.1% better price for limit orders
+  
+  # Slippage tolerance
+  max_slippage_pct: 0.5
+  
+  # Retry settings
+  max_retries: 3
+  retry_delay: 1
+  
+  # Timeouts
+  order_timeout: 30  # seconds
+  confirmation_timeout: 60
+  
+  # Circuit breaker
+  circuit_breaker:
+    enabled: true
+    max_consecutive_losses: 3
+    cooldown_period: 3600  # 1 hour
+
+# Monitoring & Health
+monitoring:
+  # Health checks
+  health_check_interval: 60  # seconds
+  heartbeat_interval: 30
+  
+  # Metrics
+  prometheus:
+    enabled: true
+    port: 8001
+    endpoint: "/metrics"
+  
+  # Alerts
+  alerts:
+    telegram:
+      enabled: false
+      chat_id: ""
+      token: ""
+    
+    email:
+      enabled: false
+      smtp_server: ""
+      recipients: []
+  
+  # Logging
+  logging:
+    level: "INFO"
+    file: "logs/bot.log"
+    max_size_mb: 100
+    backup_count: 5
+
+# Database & Cache
+database:
+  redis:
+    enabled: true
+    url: "redis://localhost:6379/0"
+    timeout: 5
+    
+  # SQL database (optional)
+  postgres:
+    enabled: false
+    url: ""
+  
+  # File-based storage
+  file_storage:
+    enabled: true
+    path: "./data"
+    backup_path: "./backups"
+
+# Reporting
+reporting:
+  # Report generation
+  generate_reports: true
+  report_interval: "weekly"  # daily, weekly, monthly
+  report_time: "00:00"  # UTC
+  
+  # Output formats
+  formats:
+    - "pdf"
+    - "html"
+    - "json"
+  
+  # Content
+  include_charts: true
+  include_metrics: true
+  include_trades: true
+  
+  # Distribution
+  save_locally: true
+  send_email: false
+  upload_to_cloud: false
+
+# API Settings
+api:
+  enabled: false
+  host: "0.0.0.0"
+  port: 8000
+  debug: false
+  auth_required: true
+  cors_origins:
+    - "http://localhost:3000"
+
+# System Settings
+system:
+  # Concurrency
+  max_workers: 4
+  thread_pool_size: 10
+  
+  # Performance
+  use_multiprocessing: true
+  memory_limit_mb: 1024
+  
+  # Cleanup
+  cleanup_interval: 86400  # 24 hours
+  max_log_age_days: 30
+  
+  # Backup
+  backup_enabled: true
+  backup_schedule: "0 2 * * *"  # 2 AM daily
+  retain_backups: 7
+
+# Secrets (DO NOT PUT REAL VALUES HERE)
+# Use environment variables or secrets manager
+secrets:
+  # These will be loaded from environment
+  binance_api_key: "${BINANCE_API_KEY}"
+  binance_api_secret: "${BINANCE_API_SECRET}"
+  telegram_token: "${TELEGRAM_TOKEN}"
+  # ... other secrets

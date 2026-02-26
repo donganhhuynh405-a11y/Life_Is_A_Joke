@@ -1,0 +1,40 @@
+version: '3.8'
+services:
+  redis:
+    image: redis:alpine
+    ports: ["6379:6379"]
+    volumes: [redis_data:/data]
+  
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: trading
+      POSTGRES_USER: trader
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes: [postgres_data:/var/lib/postgresql/data]
+  
+  bot:
+    build: .
+    depends_on: [redis, postgres]
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql://trader:${DB_PASSWORD}@postgres/trading
+    env_file: .env
+    restart: unless-stopped
+  
+  prometheus:
+    image: prom/prometheus
+    ports: ["9090:9090"]
+    volumes: [./prometheus.yml:/etc/prometheus/prometheus.yml]
+  
+  grafana:
+    image: grafana/grafana
+    ports: ["3000:3000"]
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
+    volumes: [grafana_data:/var/lib/grafana]
+
+volumes:
+  redis_data:
+  postgres_data:
+  grafana_data:
