@@ -11,11 +11,13 @@ from unittest.mock import MagicMock, AsyncMock, patch
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 
+_BASE_TIMESTAMP_MS = 1_700_000_000_000  # milliseconds since epoch (~Nov 2023)
+
+
 def _raw_ohlcv(n=10):
     """Return n fake OHLCV rows as CCXT would."""
-    base_ts = 1_700_000_000_000
     return [
-        [base_ts + i * 3_600_000, 100 + i, 101 + i, 99 + i, 100.5 + i, 1000 + i]
+        [_BASE_TIMESTAMP_MS + i * 3_600_000, 100 + i, 101 + i, 99 + i, 100.5 + i, 1000 + i]
         for i in range(n)
     ]
 

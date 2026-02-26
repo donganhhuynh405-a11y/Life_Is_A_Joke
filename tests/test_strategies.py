@@ -110,7 +110,7 @@ class TestSimpleTrendStrategy:
             'stop_loss': 100.0,
             'take_profit': 250.0,
         }
-        strategy = SimpleTrendStrategy(cfg, *base_deps[1:])
+        strategy = SimpleTrendStrategy(cfg, client, db, risk)
         signals = []
         strategy._check_exit_conditions(position, 300.0, signals)
         assert any(s['action'] == 'CLOSE' for s in signals)

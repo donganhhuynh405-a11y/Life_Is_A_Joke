@@ -35,7 +35,10 @@ if 'torch' not in sys.modules:
     _torch_stub.Tensor = MagicMock
     _torch_stub.FloatTensor = MagicMock(return_value=MagicMock())
     _torch_stub.tensor = MagicMock(return_value=MagicMock())
-    _torch_stub.no_grad = MagicMock(return_value=MagicMock(__enter__=MagicMock(return_value=None), __exit__=MagicMock(return_value=False)))
+    _no_grad_ctx = MagicMock()
+    _no_grad_ctx.__enter__ = MagicMock(return_value=None)
+    _no_grad_ctx.__exit__ = MagicMock(return_value=False)
+    _torch_stub.no_grad = MagicMock(return_value=_no_grad_ctx)
     _torch_stub.zeros = MagicMock(return_value=MagicMock())
     _torch_stub.ones = MagicMock(return_value=MagicMock())
     _torch_stub.save = MagicMock()
