@@ -1,0 +1,47 @@
+# Prometheus configuration for Trading Bot monitoring
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'trading-bot'
+
+scrape_configs:
+  # Trading Bot metrics
+  - job_name: 'trading-bot'
+    static_configs:
+      - targets: ['localhost:8001']
+        labels:
+          service: 'trading-bot'
+          environment: 'production'
+
+  # Redis metrics (if redis_exporter is installed)
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['localhost:9121']
+        labels:
+          service: 'redis'
+
+  # PostgreSQL metrics (if postgres_exporter is installed)
+  - job_name: 'postgresql'
+    static_configs:
+      - targets: ['localhost:9187']
+        labels:
+          service: 'postgresql'
+
+  # Node exporter for system metrics
+  - job_name: 'node'
+    static_configs:
+      - targets: ['localhost:9100']
+        labels:
+          service: 'system'
+
+# Alerting rules
+rule_files:
+  - 'alerts.yml'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['localhost:9093']
