@@ -1,0 +1,71 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv/
+pip-log.txt
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+sdist/
+wheels/
+.installed.cfg
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+!.env.template.secure
+
+# Logs
+logs/
+*.log
+reports/
+
+# Data
+data/
+*.csv
+
+# ML Models
+models/*.h5
+models/*.pt
+models/*.pkl
+models/*.joblib
+models/*.onnx
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Frontend
+frontend/node_modules/
+frontend/build/
+frontend/.env
+frontend/dist/
+
+# Backups
+backups/
