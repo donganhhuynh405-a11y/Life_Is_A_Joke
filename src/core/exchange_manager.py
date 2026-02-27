@@ -6,7 +6,7 @@ for managing cryptocurrency exchange connections and operations.
 """
 
 import logging
-from typing import Dict, List, Optional, Any, Union
+from typing import Dict, List, Optional, Any
 from abc import ABC, abstractmethod
 import ccxt
 
@@ -22,32 +22,27 @@ class ExchangeManager(ABC):
     @abstractmethod
     def connect(self) -> bool:
         """Connect to the exchange."""
-        pass
 
     @abstractmethod
     def disconnect(self) -> bool:
         """Disconnect from the exchange."""
-        pass
 
     @abstractmethod
     def get_balance(self) -> Dict[str, Any]:
         """Get account balance."""
-        pass
 
     @abstractmethod
     def get_ticker(self, symbol: str) -> Dict[str, Any]:
         """Get ticker information for a symbol."""
-        pass
 
     @abstractmethod
-    def place_order(self, symbol: str, order_type: str, side: str, amount: float, price: Optional[float] = None) -> Dict[str, Any]:
+    def place_order(self, symbol: str, order_type: str, side: str, amount: float,
+                    price: Optional[float] = None) -> Dict[str, Any]:
         """Place an order on the exchange."""
-        pass
 
     @abstractmethod
     def cancel_order(self, order_id: str, symbol: Optional[str] = None) -> Dict[str, Any]:
         """Cancel an open order."""
-        pass
 
 
 class CCXTExchangeManager(ExchangeManager):
@@ -56,7 +51,13 @@ class CCXTExchangeManager(ExchangeManager):
     Provides unified interface to multiple cryptocurrency exchanges via CCXT library.
     """
 
-    def __init__(self, exchange_name: str, api_key: str, api_secret: str, passphrase: Optional[str] = None, **kwargs):
+    def __init__(
+            self,
+            exchange_name: str,
+            api_key: str,
+            api_secret: str,
+            passphrase: Optional[str] = None,
+            **kwargs):
         """
         Initialize CCXT Exchange Manager.
 
@@ -130,7 +131,7 @@ class CCXTExchangeManager(ExchangeManager):
 
         Returns:
             Dict containing account balance information
-            
+
         Raises:
             ConnectionError: When not connected to exchange
             Exception: For other exchange-related errors
@@ -163,7 +164,7 @@ class CCXTExchangeManager(ExchangeManager):
 
         Returns:
             float: Balance amount for the specified currency, 0.0 if not found
-            
+
         Note:
             This method makes a fresh API call to the exchange each time.
             For multiple currency lookups, consider calling get_balance() once
@@ -175,7 +176,7 @@ class CCXTExchangeManager(ExchangeManager):
 
         try:
             balance = self.exchange.fetch_balance()
-            
+
             # CCXT returns balance in format:
             # {
             #   'info': {...},
@@ -185,19 +186,22 @@ class CCXTExchangeManager(ExchangeManager):
             #   'used': {'USDT': 0.0, ...},
             #   'total': {'USDT': 10000.0, ...}
             # }
-            
+
             if balance_type not in ['free', 'used', 'total']:
                 logger.warning(f"Invalid balance_type '{balance_type}', using 'free'")
                 balance_type = 'free'
-            
+
             if balance_type in balance and isinstance(balance[balance_type], dict):
                 currency_balance = balance[balance_type].get(currency, 0.0)
                 logger.info(f"{currency} {balance_type} balance: {currency_balance}")
                 return float(currency_balance)
             else:
-                logger.warning(f"Could not find {balance_type} balance dict. Balance keys: {list(balance.keys())}")
+                logger.warning(
+                    f"Could not find {balance_type} balance dict. Balance keys: {
+                        list(
+                            balance.keys())}")
                 return 0.0
-                
+
         except Exception as e:
             logger.error(f"Error fetching {currency} balance: {str(e)}")
             return 0.0
@@ -247,7 +251,7 @@ class CCXTExchangeManager(ExchangeManager):
             logger.error(f"Error fetching orderbook for {symbol}: {str(e)}")
             return {}
 
-    def _check_sufficient_balance(self, symbol: str, side: str, amount: float, 
+    def _check_sufficient_balance(self, symbol: str, side: str, amount: float,
                                   price: Optional[float] = None) -> bool:
         """
         Check if account has sufficient balance for an order.
@@ -263,17 +267,18 @@ class CCXTExchangeManager(ExchangeManager):
         """
         try:
             balance = self.exchange.fetch_balance()
-            
+
             # Parse the symbol to get base and quote currencies
             # e.g., 'BTC/USDT' -> base='BTC', quote='USDT'
             parts = symbol.split('/')
             if len(parts) != 2:
-                logger.warning(f"Invalid symbol format: {symbol}, proceeding without local validation")
+                logger.warning(
+                    f"Invalid symbol format: {symbol}, proceeding without local validation")
                 # Let the exchange validate the symbol format
                 return True
-            
+
             base_currency, quote_currency = parts
-            
+
             if side.lower() == 'buy':
                 # For buy orders, need quote currency (e.g., USDT to buy BTC)
                 required_currency = quote_currency
@@ -284,33 +289,34 @@ class CCXTExchangeManager(ExchangeManager):
                     ticker = self.exchange.fetch_ticker(symbol)
                     ask_price = ticker.get('ask')
                     if not ask_price or ask_price <= 0:
-                        logger.warning(f"Invalid or missing ask price for {symbol}, proceeding without local validation")
+                        logger.warning(
+                            f"Invalid or missing ask price for {symbol}, proceeding without local validation")
                         return True
                     required_amount = amount * ask_price
             else:
                 # For sell orders, need base currency (e.g., BTC to sell)
                 required_currency = base_currency
                 required_amount = amount
-            
+
             # Get available balance for the required currency
             available = balance.get('free', {}).get(required_currency, 0)
-            
+
             if available < required_amount:
                 logger.warning(
                     f"Insufficient {required_currency} balance. "
                     f"Required: {required_amount}, Available: {available}"
                 )
                 return False
-            
+
             return True
-            
+
         except Exception as e:
             logger.warning(f"Error checking balance: {str(e)}, proceeding without validation")
             # If we can't check balance, let the exchange handle it
             return True
 
     def place_order(self, symbol: str, order_type: str, side: str, amount: float,
-                   price: Optional[float] = None) -> Dict[str, Any]:
+                    price: Optional[float] = None) -> Dict[str, Any]:
         """
         Place an order on the exchange.
 
@@ -323,7 +329,7 @@ class CCXTExchangeManager(ExchangeManager):
 
         Returns:
             Dict containing order information
-            
+
         Raises:
             ccxt.InsufficientFunds: When account has insufficient balance
             ccxt.NetworkError: When there's a network connectivity issue
@@ -340,9 +346,10 @@ class CCXTExchangeManager(ExchangeManager):
             # - Fees, slippage, minimum amounts, or other exchange-specific rules
             # - Balance changes between check and order submission
             if not self._check_sufficient_balance(symbol, side, amount, price):
-                logger.warning(f"Local balance check suggests insufficient funds for {side} order: {amount} {symbol}")
+                logger.warning(
+                    f"Local balance check suggests insufficient funds for {side} order: {amount} {symbol}")
                 # Continue to exchange - it will provide the authoritative error
-            
+
             order = self.exchange.create_order(symbol, order_type, side, amount, price)
             logger.info(f"Placed {side} {order_type} order for {symbol}: {amount} @ {price}")
             return order
@@ -398,13 +405,14 @@ class CCXTExchangeManager(ExchangeManager):
 
         try:
             orders = self.exchange.fetch_open_orders(symbol)
-            logger.debug(f"Fetched open orders")
+            logger.debug("Fetched open orders")
             return orders
         except Exception as e:
             logger.error(f"Error fetching open orders: {str(e)}")
             return []
 
-    def get_closed_orders(self, symbol: Optional[str] = None, limit: Optional[int] = None) -> List[Dict[str, Any]]:
+    def get_closed_orders(self, symbol: Optional[str] = None,
+                          limit: Optional[int] = None) -> List[Dict[str, Any]]:
         """
         Get list of closed orders.
 
@@ -421,7 +429,7 @@ class CCXTExchangeManager(ExchangeManager):
 
         try:
             orders = self.exchange.fetch_closed_orders(symbol, limit=limit)
-            logger.debug(f"Fetched closed orders")
+            logger.debug("Fetched closed orders")
             return orders
         except Exception as e:
             logger.error(f"Error fetching closed orders: {str(e)}")
@@ -459,7 +467,7 @@ class CCXTExchangeManager(ExchangeManager):
 
         try:
             markets = self.exchange.fetch_markets()
-            logger.debug(f"Fetched market information")
+            logger.debug("Fetched market information")
             return {market['symbol']: market for market in markets}
         except Exception as e:
             logger.error(f"Error fetching markets: {str(e)}")
@@ -482,7 +490,7 @@ class ExchangeFactory:
 
     @classmethod
     def create_exchange(cls, exchange_name: str, api_key: str, api_secret: str,
-                       passphrase: Optional[str] = None, **kwargs) -> Optional[ExchangeManager]:
+                        passphrase: Optional[str] = None, **kwargs) -> Optional[ExchangeManager]:
         """
         Create an exchange manager instance.
 

@@ -56,7 +56,7 @@ TRANSLATIONS = {
         'nl': '🚀 <b>Trading Bot Gestart</b>',
         'id': '🚀 <b>Bot Trading Dimulai</b>',
     },
-    
+
     'bot_stopped': {
         'en': '🛑 <b>Trading Bot Stopped</b>',
         'zh': '🛑 <b>交易机器人已停止</b>',
@@ -79,7 +79,7 @@ TRANSLATIONS = {
         'nl': '🛑 <b>Trading Bot Gestopt</b>',
         'id': '🛑 <b>Bot Trading Dihentikan</b>',
     },
-    
+
     # Trading Actions
     'position_opened': {
         'en': '✅ <b>Position Opened</b>',
@@ -103,7 +103,7 @@ TRANSLATIONS = {
         'nl': '✅ <b>Positie Geopend</b>',
         'id': '✅ <b>Posisi Dibuka</b>',
     },
-    
+
     'position_closed': {
         'en': 'Position Closed',
         'zh': '已平仓',
@@ -126,7 +126,7 @@ TRANSLATIONS = {
         'nl': 'Positie Gesloten',
         'id': 'Posisi Ditutup',
     },
-    
+
     # Report Headers
     'hourly_summary': {
         'en': '📊 <b>Hourly Status Summary</b>',
@@ -150,7 +150,7 @@ TRANSLATIONS = {
         'nl': '📊 <b>Uur Statusoverzicht</b>',
         'id': '📊 <b>Ringkasan Status Per Jam</b>',
     },
-    
+
     # Field Labels
     'symbol': {
         'en': 'Symbol',
@@ -174,7 +174,7 @@ TRANSLATIONS = {
         'nl': 'Symbool',
         'id': 'Simbol',
     },
-    
+
     'side': {
         'en': 'Side',
         'zh': '方向',
@@ -197,7 +197,7 @@ TRANSLATIONS = {
         'nl': 'Kant',
         'id': 'Sisi',
     },
-    
+
     'quantity': {
         'en': 'Quantity',
         'zh': '数量',
@@ -220,7 +220,7 @@ TRANSLATIONS = {
         'nl': 'Hoeveelheid',
         'id': 'Kuantitas',
     },
-    
+
     'entry_price': {
         'en': 'Entry',
         'zh': '入场价',
@@ -243,7 +243,7 @@ TRANSLATIONS = {
         'nl': 'Ingang',
         'id': 'Masuk',
     },
-    
+
     'exit_price': {
         'en': 'Exit',
         'zh': '出场价',
@@ -266,7 +266,7 @@ TRANSLATIONS = {
         'nl': 'Uitgang',
         'id': 'Keluar',
     },
-    
+
     'pnl': {
         'en': 'P&L',
         'zh': '盈亏',
@@ -289,7 +289,7 @@ TRANSLATIONS = {
         'nl': 'W&V',
         'id': 'L&R',
     },
-    
+
     'strategy': {
         'en': 'Strategy',
         'zh': '策略',
@@ -312,7 +312,7 @@ TRANSLATIONS = {
         'nl': 'Strategie',
         'id': 'Strategi',
     },
-    
+
     'open_positions': {
         'en': 'Open Positions',
         'zh': '持仓',
@@ -335,7 +335,7 @@ TRANSLATIONS = {
         'nl': 'Open Posities',
         'id': 'Posisi Terbuka',
     },
-    
+
     'balances': {
         'en': 'Balances',
         'zh': '余额',
@@ -358,7 +358,7 @@ TRANSLATIONS = {
         'nl': 'Saldi',
         'id': 'Saldo',
     },
-    
+
     'daily_pnl': {
         'en': 'Daily P&L',
         'zh': '日盈亏',
@@ -381,7 +381,7 @@ TRANSLATIONS = {
         'nl': 'Dag W&V',
         'id': 'L&R Harian',
     },
-    
+
     'trend_analysis': {
         'en': 'Trend Analysis',
         'zh': '趋势分析',
@@ -404,7 +404,7 @@ TRANSLATIONS = {
         'nl': 'Trendanalyse',
         'id': 'Analisis Tren',
     },
-    
+
     'market_sentiment': {
         'en': 'Market Sentiment',
         'zh': '市场情绪',
@@ -427,7 +427,7 @@ TRANSLATIONS = {
         'nl': 'Marktsentiment',
         'id': 'Sentimen Pasar',
     },
-    
+
     'trading_plan': {
         'en': 'Trading Plan for Hour',
         'zh': '小时交易计划',
@@ -450,7 +450,7 @@ TRANSLATIONS = {
         'nl': 'Handelsplan per Uur',
         'id': 'Rencana Trading Per Jam',
     },
-    
+
     'time': {
         'en': 'Time',
         'zh': '时间',
@@ -473,7 +473,7 @@ TRANSLATIONS = {
         'nl': 'Tijd',
         'id': 'Waktu',
     },
-    
+
     # AI Commentary Headers
     'ai_insight': {
         'en': '🤖 <b>AI Insight:</b>',
@@ -497,7 +497,7 @@ TRANSLATIONS = {
         'nl': '🤖 <b>AI-Analyse:</b>',
         'id': '🤖 <b>Analisis AI:</b>',
     },
-    
+
     'ai_analysis': {
         'en': '🤖 <b>AI Analysis:</b>',
         'zh': '🤖 <b>AI分析：</b>',
@@ -520,7 +520,7 @@ TRANSLATIONS = {
         'nl': '🤖 <b>AI-Analyse:</b>',
         'id': '🤖 <b>Analisis AI:</b>',
     },
-    
+
     'ai_daily_insight': {
         'en': '🤖 <b>AI Daily Insight:</b>',
         'zh': '🤖 <b>AI每日洞察：</b>',
@@ -543,7 +543,7 @@ TRANSLATIONS = {
         'nl': '🤖 <b>AI Dagelijkse Analyse:</b>',
         'id': '🤖 <b>Analisis Harian AI:</b>',
     },
-    
+
     'ai_adaptive_strategy': {
         'en': '🤖 <b>AI Adaptive Strategy:</b>',
         'zh': '🤖 <b>AI自适应策略：</b>',
@@ -566,7 +566,7 @@ TRANSLATIONS = {
         'nl': '🤖 <b>AI Adaptieve Strategie:</b>',
         'id': '🤖 <b>Strategi Adaptif AI:</b>',
     },
-    
+
     # Strategy Status Keys
     'strategy_status': {
         'en': 'AI Strategy Status',
@@ -791,47 +791,46 @@ TRANSLATIONS = {
 }
 
 
-
 class TranslationManager:
     """Manages multilingual translations for bot notifications"""
-    
+
     def __init__(self, language='en'):
         """
         Initialize translation manager
-        
+
         Args:
             language: Language code (default: 'en')
         """
         self.language = language if language in SUPPORTED_LANGUAGES else 'en'
         if self.language != language:
             logger.warning(f"Language '{language}' not supported, falling back to English")
-    
+
     def get(self, key, default=None):
         """
         Get translation for a key
-        
+
         Args:
             key: Translation key
             default: Default value if translation not found
-            
+
         Returns:
             Translated string or default
         """
         if key not in TRANSLATIONS:
             logger.warning(f"Translation key '{key}' not found")
             return default or key
-        
+
         translations = TRANSLATIONS[key]
         return translations.get(self.language, translations.get('en', default or key))
-    
+
     def format(self, key, **kwargs):
         """
         Get translation and format with arguments
-        
+
         Args:
             key: Translation key
             **kwargs: Format arguments
-            
+
         Returns:
             Formatted translated string
         """
@@ -841,11 +840,11 @@ class TranslationManager:
         except KeyError as e:
             logger.error(f"Missing format key in translation: {e}")
             return translation
-    
+
     def set_language(self, language):
         """
         Change current language
-        
+
         Args:
             language: New language code
         """
@@ -859,10 +858,10 @@ class TranslationManager:
 def get_translation_manager(language='en'):
     """
     Factory function to create translation manager
-    
+
     Args:
         language: Language code
-        
+
     Returns:
         TranslationManager instance
     """

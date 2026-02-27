@@ -1,20 +1,20 @@
-from fastapi import FastAPI, BackgroundTasks
+from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 import uvicorn
 from backtester.engine import Backtester
 from strategies import StrategyRegistry
-import plotly.graph_objects as go
 from pydantic import BaseModel
-import asyncio
 
 app = FastAPI(title="ROFL Trading Bot Dashboard")
 app.mount("/static", StaticFiles(directory="frontend"), name="static")
+
 
 class BacktestRequest(BaseModel):
     symbol: str = "BTCUSDT"
     days: int = 90
     strategy: str = "rsi"
+
 
 @app.get("/", response_class=HTMLResponse)
 async def dashboard():
@@ -40,23 +40,24 @@ async def dashboard():
     </html>
     """
 
+
 @app.get("/backtest/{symbol}")
 async def backtest_api(symbol: str, days: int = 90, strategy: str = "rsi"):
     bt = Backtester("bybit", symbol, "1h")
     df = bt.fetch_data(days)
-    
-    if strategy == "rsi":
-        df = RSIStrategy().generate_signals(df)
-    elif strategy == "dca":
-        df = DCAStrategy().generate_signals(df)
-    
+
+    strategy_instance = StrategyRegistry.get(strategy)
+    if strategy_instance is not None:
+        df = strategy_instance.generate_signals(df)
+
     metrics = bt.calculate_metrics(df)
     fig = bt.plot_results(df)
-    
+
     return {
         "results": metrics,
         "chart": fig.to_json()
     }
+
 
 @app.get("/strategies")
 async def list_strategies():

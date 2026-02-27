@@ -7,7 +7,7 @@ Based on strategies from top performing bots
 
 import logging
 import numpy as np
-from typing import Dict, List
+from typing import Dict
 from enum import Enum
 
 logger = logging.getLogger(__name__)
@@ -28,22 +28,22 @@ class MarketRegimeDetector:
     """
     Detect market regime for adaptive trading strategies
     """
-    
+
     def __init__(self, config: Dict):
         """
         Initialize market regime detector
-        
+
         Args:
             config: Configuration dictionary
         """
         self.config = config
-        
+
         self.adx_strong_trend = config.get('ADX_STRONG_TREND', 40)
         self.adx_weak_trend = config.get('ADX_WEAK_TREND', 25)
         self.volatility_high_threshold = config.get('VOLATILITY_HIGH_THRESHOLD', 3.0)
-        
+
         logger.info("📈 Market Regime Detector initialized")
-    
+
     def detect_regime(
         self,
         prices: np.ndarray,
@@ -54,14 +54,14 @@ class MarketRegimeDetector:
     ) -> Dict:
         """
         Detect current market regime
-        
+
         Args:
             prices: Array of recent prices
             adx: Average Directional Index
             di_plus: Positive Directional Indicator
             di_minus: Negative Directional Indicator
             atr: Average True Range
-            
+
         Returns:
             Dict with regime information
         """
@@ -73,26 +73,26 @@ class MarketRegimeDetector:
                 'trending': False,
                 'volatile': False
             }
-        
+
         sma_20 = np.mean(prices[-20:])
         sma_50 = np.mean(prices[-50:]) if len(prices) >= 50 else sma_20
         current_price = prices[-1]
-        
+
         price_vs_sma20 = ((current_price - sma_20) / sma_20) * 100
         trend_strength = ((sma_20 - sma_50) / sma_50) * 100 if sma_50 > 0 else 0
-        
+
         returns = np.diff(prices[-20:]) / prices[-20:-1]
         volatility = np.std(returns) * 100
-        
+
         regime = MarketRegime.RANGING
         confidence = 0.5
         description = ""
         trending = False
         volatile = False
-        
+
         if volatility > self.volatility_high_threshold:
             volatile = True
-        
+
         if adx is not None:
             if adx > self.adx_strong_trend:
                 trending = True
@@ -112,7 +112,7 @@ class MarketRegimeDetector:
                         regime = MarketRegime.STRONG_DOWNTREND
                         description = "Strong downtrend"
                 confidence = 0.9
-                
+
             elif adx > self.adx_weak_trend:
                 trending = True
                 if di_plus and di_minus:
@@ -130,7 +130,7 @@ class MarketRegimeDetector:
                         regime = MarketRegime.WEAK_DOWNTREND
                         description = "Weak downtrend"
                 confidence = 0.7
-                
+
             else:
                 if volatile:
                     regime = MarketRegime.CHOPPY
@@ -166,12 +166,12 @@ class MarketRegimeDetector:
                     regime = MarketRegime.RANGING
                     description = "Ranging market (sideways)"
                 confidence = 0.6
-        
+
         if volatile and volatility > self.volatility_high_threshold * 1.5:
             regime = MarketRegime.HIGH_VOLATILITY
             description = f"High volatility market ({volatility:.2f}%)"
             confidence = 0.9
-        
+
         result = {
             'regime': regime,
             'confidence': confidence,
@@ -183,23 +183,23 @@ class MarketRegimeDetector:
             'adx': adx,
             'price_vs_sma20': price_vs_sma20
         }
-        
+
         logger.debug(f"Regime: {regime.value} ({description}, conf: {confidence:.0%})")
-        
+
         return result
-    
+
     def get_regime_trading_advice(self, regime_info: Dict) -> Dict:
         """
         Get trading recommendations based on regime
-        
+
         Args:
             regime_info: Output from detect_regime()
-            
+
         Returns:
             Trading advice dict
         """
         regime = regime_info['regime']
-        
+
         advice = {
             'regime': regime.value,
             'should_trade': True,
@@ -208,7 +208,7 @@ class MarketRegimeDetector:
             'stop_loss_multiplier': 1.0,
             'confidence_threshold_adj': 0.0
         }
-        
+
         if regime == MarketRegime.STRONG_UPTREND:
             advice.update({
                 'should_trade': True,
@@ -218,7 +218,7 @@ class MarketRegimeDetector:
                 'stop_loss_multiplier': 1.5,  # Wider stops
                 'confidence_threshold_adj': -5  # Lower threshold (more trades)
             })
-        
+
         elif regime == MarketRegime.STRONG_DOWNTREND:
             advice.update({
                 'should_trade': True,
@@ -228,7 +228,7 @@ class MarketRegimeDetector:
                 'stop_loss_multiplier': 1.5,
                 'confidence_threshold_adj': -5
             })
-        
+
         elif regime == MarketRegime.WEAK_UPTREND:
             advice.update({
                 'should_trade': True,
@@ -238,7 +238,7 @@ class MarketRegimeDetector:
                 'stop_loss_multiplier': 1.2,
                 'confidence_threshold_adj': 0
             })
-        
+
         elif regime == MarketRegime.WEAK_DOWNTREND:
             advice.update({
                 'should_trade': True,
@@ -248,7 +248,7 @@ class MarketRegimeDetector:
                 'stop_loss_multiplier': 1.2,
                 'confidence_threshold_adj': 0
             })
-        
+
         elif regime == MarketRegime.RANGING:
             advice.update({
                 'should_trade': True,
@@ -258,7 +258,7 @@ class MarketRegimeDetector:
                 'stop_loss_multiplier': 1.0,
                 'confidence_threshold_adj': 5  # Higher threshold (fewer trades)
             })
-        
+
         elif regime == MarketRegime.CHOPPY:
             advice.update({
                 'should_trade': False,  # Avoid choppy markets
@@ -268,7 +268,7 @@ class MarketRegimeDetector:
                 'stop_loss_multiplier': 0.8,  # Tighter stops if trading
                 'confidence_threshold_adj': 10  # Much higher threshold
             })
-        
+
         elif regime == MarketRegime.HIGH_VOLATILITY:
             advice.update({
                 'should_trade': True,
@@ -278,5 +278,5 @@ class MarketRegimeDetector:
                 'stop_loss_multiplier': 2.0,  # Much wider stops
                 'confidence_threshold_adj': 5
             })
-        
+
         return advice

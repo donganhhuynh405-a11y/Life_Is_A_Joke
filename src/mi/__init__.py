@@ -10,8 +10,8 @@ from .ai_commentary import AICommentaryGenerator, get_commentary_generator
 from .adaptive_tactics import AdaptiveTacticsManager
 
 __all__ = [
-    'TradeAnalyzer', 
-    'PerformanceAnalyzer', 
+    'TradeAnalyzer',
+    'PerformanceAnalyzer',
     'SignalScorer',
     'AICommentaryGenerator',
     'get_commentary_generator',

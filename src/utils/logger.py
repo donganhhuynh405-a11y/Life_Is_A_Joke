@@ -12,19 +12,19 @@ from pathlib import Path
 def parse_size(size_str: str) -> int:
     """
     Parse human-readable size string to bytes
-    
+
     Args:
         size_str: Size string like '100M', '1G', '500K', or plain number
-    
+
     Returns:
         Size in bytes
     """
     size_str = str(size_str).strip().upper()
-    
+
     # If it's already a plain number, return it
     if size_str.isdigit():
         return int(size_str)
-    
+
     # Parse size with suffix
     units = {
         'K': 1024,
@@ -34,7 +34,7 @@ def parse_size(size_str: str) -> int:
         'MB': 1024 * 1024,
         'GB': 1024 * 1024 * 1024,
     }
-    
+
     for suffix, multiplier in units.items():
         if size_str.endswith(suffix):
             try:
@@ -42,7 +42,7 @@ def parse_size(size_str: str) -> int:
                 return int(number * multiplier)
             except ValueError:
                 pass
-    
+
     # Fallback: try to parse as int
     try:
         return int(size_str)
@@ -54,10 +54,10 @@ def parse_size(size_str: str) -> int:
 def setup_logger(name: str = None) -> logging.Logger:
     """
     Setup application logger
-    
+
     Args:
         name: Logger name (default: root logger)
-    
+
     Returns:
         Configured logger instance
     """
@@ -68,22 +68,22 @@ def setup_logger(name: str = None) -> logging.Logger:
     log_to_console = os.getenv('LOG_TO_CONSOLE', 'true').lower() == 'true'
     log_max_size = parse_size(os.getenv('LOG_MAX_SIZE', '104857600'))
     log_backup_count = int(os.getenv('LOG_BACKUP_COUNT', '10'))
-    
+
     logger = logging.getLogger(name)
     logger.setLevel(getattr(logging, log_level, logging.INFO))
     logger.handlers.clear()
-    
+
     formatter = logging.Formatter(
         '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S'
     )
-    
+
     if log_to_console:
         console_handler = logging.StreamHandler()
         console_handler.setLevel(getattr(logging, log_level, logging.INFO))
         console_handler.setFormatter(formatter)
         logger.addHandler(console_handler)
-    
+
     if log_to_file:
         try:
             log_path = Path(log_dir)
@@ -91,9 +91,9 @@ def setup_logger(name: str = None) -> logging.Logger:
                 log_path = Path('./logs')
                 log_path.mkdir(exist_ok=True)
                 log_dir = str(log_path)
-            
+
             log_file_path = os.path.join(log_dir, log_file)
-            
+
             file_handler = RotatingFileHandler(
                 log_file_path,
                 maxBytes=log_max_size,
@@ -102,8 +102,8 @@ def setup_logger(name: str = None) -> logging.Logger:
             file_handler.setLevel(getattr(logging, log_level, logging.INFO))
             file_handler.setFormatter(formatter)
             logger.addHandler(file_handler)
-            
+
         except Exception as e:
             logger.warning(f"Could not setup file logging: {e}")
-    
+
     return logger

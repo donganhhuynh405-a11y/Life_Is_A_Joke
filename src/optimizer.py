@@ -5,6 +5,7 @@ import random
 
 logger = logging.getLogger('bot.optimizer')
 
+
 class Optimizer:
     def __init__(self, cfg, redis_url=None):
         self.cfg = cfg
@@ -29,7 +30,7 @@ class Optimizer:
         while self.running:
             # daily genetic optimization placeholder
             await self.run_ga()
-            await asyncio.sleep(24*3600)
+            await asyncio.sleep(24 * 3600)
 
     async def run_ga(self):
         # Minimal DEAP example to evolve numeric strategy params
@@ -38,7 +39,12 @@ class Optimizer:
 
         toolbox = base.Toolbox()
         toolbox.register('attr_float', random.random)
-        toolbox.register('individual', tools.initRepeat, creator.Individual, toolbox.attr_float, n=10)
+        toolbox.register(
+            'individual',
+            tools.initRepeat,
+            creator.Individual,
+            toolbox.attr_float,
+            n=10)
         toolbox.register('population', tools.initRepeat, list, toolbox.individual)
 
         def eval_ind(ind):

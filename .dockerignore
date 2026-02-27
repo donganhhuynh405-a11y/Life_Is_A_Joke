@@ -1,0 +1,100 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+wheels/
+*.egg-link
+.installed.cfg
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# CI/CD
+.github/
+
+# Docs
+docs/
+*.md
+!README.md
+
+# Notebooks
+notebooks/
+*.ipynb
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment
+.env
+.env.*
+!.env.template.secure
+*.env
+
+# Logs
+logs/
+*.log
+reports/
+
+# Data
+data/
+*.csv
+*.json
+!models/config/*.json
+
+# Models (large files)
+models/*.h5
+models/*.pt
+models/*.pkl
+models/*.joblib
+
+# Benchmarks
+benchmarks/
+
+# Deployment configs (not for runtime image)
+deployment/
+k8s/
+
+# Docker
+docker-compose*.yml
+Dockerfile*
+
+# Scripts (dev only)
+scripts/
+
+# Frontend (built separately)
+frontend/node_modules/
+frontend/build/
+frontend/.env

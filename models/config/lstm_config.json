@@ -1,0 +1,64 @@
+{
+  "model_name": "lstm_price_predictor",
+  "version": "1.0.0",
+  "description": "LSTM model for short-term cryptocurrency price prediction",
+  "architecture": {
+    "type": "LSTM",
+    "input_size": 32,
+    "hidden_size": 128,
+    "num_layers": 2,
+    "output_size": 1,
+    "dropout": 0.2,
+    "bidirectional": false
+  },
+  "training": {
+    "sequence_length": 60,
+    "prediction_horizon": 1,
+    "batch_size": 64,
+    "epochs": 100,
+    "learning_rate": 0.001,
+    "optimizer": "adam",
+    "loss": "mse",
+    "early_stopping_patience": 10,
+    "validation_split": 0.1,
+    "shuffle": false
+  },
+  "data": {
+    "symbols": ["BTCUSDT", "ETHUSDT"],
+    "timeframe": "1h",
+    "features": [
+      "log_return_1",
+      "log_return_5",
+      "log_return_10",
+      "sma_20",
+      "ema_20",
+      "BB_pct",
+      "BB_width",
+      "rsi_14",
+      "MACD",
+      "MACD_signal",
+      "MACD_hist",
+      "atr_14",
+      "stoch_k",
+      "stoch_d",
+      "vol_ratio_20",
+      "obv",
+      "zscore_20",
+      "skew_20",
+      "candle_body_pct",
+      "upper_wick_pct",
+      "lower_wick_pct"
+    ],
+    "target": "log_return_1",
+    "normalisation": "standard_scaler"
+  },
+  "evaluation": {
+    "metrics": ["mse", "mae", "directional_accuracy"],
+    "test_split": 0.2
+  },
+  "deployment": {
+    "min_confidence_threshold": 0.55,
+    "max_position_size": 0.1,
+    "inference_device": "cpu"
+  }
+}

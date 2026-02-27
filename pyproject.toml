@@ -1,0 +1,167 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "life-is-a-joke-trading-bot"
+version = "1.3.0"
+description = "Advanced crypto trading bot with ML capabilities, risk management, and monitoring"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.9"
+authors = [
+  {name = "Trading Bot Team"}
+]
+keywords = ["trading", "cryptocurrency", "machine-learning", "bot", "binance"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Financial and Insurance Industry",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Topic :: Office/Business :: Financial :: Investment",
+]
+dependencies = [
+  "python-binance>=1.0.19",
+  "ccxt>=4.2.0",
+  "python-dotenv>=1.0.0",
+  "pandas>=2.0.0",
+  "numpy>=1.24.0",
+  "SQLAlchemy>=2.0.0",
+  "fastapi>=0.104.0",
+  "uvicorn>=0.24.0",
+  "requests>=2.31.0",
+  "aiohttp>=3.9.0",
+  "feedparser>=6.0.10",
+  "cryptography>=41.0.0",
+  "pydantic>=2.5.0",
+  "psutil>=5.9.0",
+  "scipy>=1.11.0",
+  "scikit-learn>=1.3.0",
+  "joblib>=1.3.0",
+  "ta>=0.11.0",
+  "cachetools>=5.3.0",
+  "prometheus-client>=0.19.0",
+]
+
+[project.optional-dependencies]
+ml = [
+  "tensorflow>=2.15.0",
+  "torch>=2.6.0",
+  "transformers>=4.48.0",
+  "sentencepiece>=0.2.1",
+  "optuna>=3.5.0",
+  "pytorch-lightning>=2.1.0",
+  "tensorboard>=2.15.0",
+  "einops>=0.7.0",
+  "xgboost>=2.0.0",
+  "lightgbm>=4.0.0",
+  "catboost>=1.2.0",
+  "shap>=0.44.0",
+]
+monitoring = [
+  "opentelemetry-api>=1.20.0",
+  "opentelemetry-sdk>=1.20.0",
+  "opentelemetry-exporter-otlp>=1.20.0",
+]
+security = [
+  "hvac>=2.0.0",
+  "PyJWT>=2.8.0",
+]
+notifications = [
+  "python-telegram-bot>=20.0",
+]
+cache = [
+  "redis>=5.0.0",
+]
+frontend = [
+  "jinja2>=3.1.0",
+  "python-multipart>=0.0.9",
+  "websockets>=12.0",
+]
+dev = [
+  "pytest>=7.0.0",
+  "pytest-asyncio>=0.21.0",
+  "pytest-mock>=3.11.0",
+  "pytest-cov>=4.1.0",
+  "black>=23.0.0",
+  "flake8>=6.0.0",
+  "mypy>=1.0.0",
+  "pylint>=3.0.0",
+  "bandit>=1.7.0",
+  "safety>=2.3.0",
+  "pre-commit>=3.0.0",
+]
+all = [
+  "life-is-a-joke-trading-bot[ml,monitoring,security,notifications,cache,frontend,dev]",
+]
+
+[project.urls]
+Homepage = "https://github.com/donganhhuynh405-a11y/Life_Is_A_Joke"
+Documentation = "https://github.com/donganhhuynh405-a11y/Life_Is_A_Joke/tree/main/docs"
+"Bug Tracker" = "https://github.com/donganhhuynh405-a11y/Life_Is_A_Joke/issues"
+
+[project.scripts]
+trading-bot = "src.main:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*", "backtester*"]
+
+[tool.black]
+line-length = 100
+target-version = ["py39", "py310", "py311"]
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  | .git
+  | .venv
+  | venv
+  | build
+  | dist
+  | frontend
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 100
+known_first_party = ["src", "backtester"]
+skip_glob = ["venv/*", ".venv/*", "frontend/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+asyncio_mode = "auto"
+addopts = "--tb=short -v"
+
+[tool.coverage.run]
+source = ["src"]
+omit = [
+  "*/tests/*",
+  "*/migrations/*",
+  "*/__pycache__/*",
+  "src/main.py",
+  "frontend/*",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+fail_under = 70
+exclude_lines = [
+  "pragma: no cover",
+  "def __repr__",
+  "if self.debug:",
+  "if settings.DEBUG",
+  "raise AssertionError",
+  "raise NotImplementedError",
+  "if __name__ == .__main__.:",
+  "pass",
+  "\\.\\.\\.",
+]

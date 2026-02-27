@@ -1,0 +1,32 @@
+version: '3.8'
+# Vault Docker Compose - add this to your main docker-compose
+# or run separately: docker-compose -f deployment/vault/docker-compose.vault.yml up -d
+
+services:
+  vault:
+    image: hashicorp/vault:latest
+    container_name: trading_vault
+    ports:
+      - "8200:8200"
+      - "8201:8201"
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: "${VAULT_DEV_TOKEN:-dev-root-token}"
+      VAULT_DEV_LISTEN_ADDRESS: "0.0.0.0:8200"
+    volumes:
+      - ./config.hcl:/vault/config/config.hcl:ro
+      - vault_data:/vault/data
+      - vault_logs:/vault/logs
+    cap_add:
+      - IPC_LOCK
+    command: vault server -config=/vault/config/config.hcl
+    healthcheck:
+      test: ["CMD", "vault", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  vault_data:
+  vault_logs:

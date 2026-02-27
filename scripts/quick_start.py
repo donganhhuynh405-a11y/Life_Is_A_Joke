@@ -23,7 +23,7 @@ def check_python_version():
     import sys
     version = sys.version_info
     print(f"Python version: {version.major}.{version.minor}.{version.micro}")
-    
+
     if version.major == 3 and version.minor >= 9:
         print("✓ Python version OK")
         return True
@@ -60,7 +60,7 @@ def install_dependencies():
     """Install required dependencies"""
     print("Installing core dependencies...")
     packages = ['pandas', 'numpy', 'ccxt', 'pyyaml', 'cachetools', 'python-dotenv']
-    
+
     try:
         subprocess.check_call([
             sys.executable, '-m', 'pip', 'install', '-q', '--upgrade'
@@ -91,7 +91,7 @@ def run_health_check():
 def show_next_steps():
     """Show user what to do next"""
     print_header("NEXT STEPS")
-    
+
     print("""
 1. Edit .env file with your API keys:
    - Get Binance Testnet keys: https://testnet.binance.vision/
@@ -117,28 +117,28 @@ For more information, see README.md
 def main():
     """Main setup flow"""
     print_header("CRYPTO TRADING BOT - QUICK START")
-    
+
     # Step 1: Check Python version
     print_section("Python Version")
     if not check_python_version():
         print("\nPlease upgrade to Python 3.9 or higher")
         return 1
-    
+
     # Step 2: Check/create .env file
     print_section("Environment Configuration")
     env_ok = check_env_file()
-    
+
     # Step 3: Install dependencies
     print_section("Dependencies")
     if not install_dependencies():
         print("\nPlease install dependencies manually:")
         print("pip install pandas numpy ccxt pyyaml cachetools python-dotenv")
         return 1
-    
+
     # Step 4: Run health check
     print_section("Health Check")
     health_ok = run_health_check()
-    
+
     # Step 5: Show next steps
     if health_ok and env_ok:
         print("\n✓ Setup complete! System ready to run.")
@@ -146,9 +146,9 @@ def main():
         print("\n⚠ Setup mostly complete. Please edit .env file with your API keys.")
     else:
         print("\n⚠ Some components need attention. See above for details.")
-    
+
     show_next_steps()
-    
+
     return 0
 
 

@@ -1,8 +1,8 @@
 import backtrader as bt
-import datetime
 import logging
 
 logger = logging.getLogger('bot.backtest')
+
 
 class SampleStrategy(bt.Strategy):
     params = dict()
@@ -17,6 +17,7 @@ class SampleStrategy(bt.Strategy):
         else:
             if self.dataclose[0] < self.dataclose[-1]:
                 self.close()
+
 
 def run_backtest(datafeed, cerebro=None):
     cerebro = cerebro or bt.Cerebro()

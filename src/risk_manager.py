@@ -1,8 +1,8 @@
-import asyncio
 import logging
 from utils import WALLogger
 
 logger = logging.getLogger('bot.risk')
+
 
 class RiskManager:
     def __init__(self, cfg, redis_url=None):
@@ -22,9 +22,9 @@ class RiskManager:
         # edge: expected return per trade; assume b=1 (win multiplier)
         b = 1
         p = winrate
-        q = 1-p
+        q = 1 - p
         try:
-            f = (b*p - q)/b
+            f = (b * p - q) / b
             f = max(0.0, min(f, 0.2))
             size = account_balance * f
         except Exception:

@@ -1,0 +1,122 @@
+version: '3.8'
+
+# Development Docker Compose
+# Run with: docker-compose -f docker-compose.dev.yml up
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev_data:/data
+    command: redis-server --appendonly yes --loglevel debug
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: trading_dev
+      POSTGRES_USER: trader
+      POSTGRES_PASSWORD: devpassword123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trader -d trading_dev"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  bot:
+    build:
+      context: .
+      target: builder
+    volumes:
+      # Mount source for hot-reloading
+      - ./src:/app/src
+      - ./tests:/app/tests
+      - ./config.yaml:/app/config.yaml
+      - ./models:/app/models
+      - ./logs:/app/logs
+    environment:
+      - ENVIRONMENT=paper
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql://trader:devpassword123@postgres/trading_dev
+      - LOG_LEVEL=DEBUG
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+    env_file:
+      - .env
+    ports:
+      - "8001:8001"
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    restart: "no"
+    command: python -m src.main
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./deployment/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=7d'
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admindev123
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+    volumes:
+      - grafana_dev_data:/var/lib/grafana
+      - ./deployment/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deployment/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+
+  # Jupyter for notebooks
+  jupyter:
+    image: jupyter/scipy-notebook:latest
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./notebooks:/home/jovyan/work/notebooks
+      - ./src:/home/jovyan/work/src
+      - ./models:/home/jovyan/work/models
+    environment:
+      JUPYTER_ENABLE_LAB: "yes"
+    command: start-notebook.sh --NotebookApp.token='' --NotebookApp.password=''
+
+  # Loki for log aggregation
+  loki:
+    image: grafana/loki:latest
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./deployment/loki/config.yml:/etc/loki/config.yml:ro
+      - loki_dev_data:/loki
+    command: -config.file=/etc/loki/config.yml
+
+volumes:
+  redis_dev_data:
+  postgres_dev_data:
+  grafana_dev_data:
+  loki_dev_data:
+
+networks:
+  default:
+    name: trading_dev_network

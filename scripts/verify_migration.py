@@ -26,14 +26,14 @@ def verify_postgresql(source_db, target_config):
     if not HAS_POSTGRESQL:
         print("❌ psycopg2-binary not installed")
         sys.exit(1)
-    
+
     print("🔍 VERIFICATION: SQLite → PostgreSQL")
     print("=" * 60)
-    
+
     # Connect to source
     source_conn = sqlite3.connect(source_db)
     source_cursor = source_conn.cursor()
-    
+
     # Connect to target
     target_conn = psycopg2.connect(
         host=target_config['host'],
@@ -43,41 +43,42 @@ def verify_postgresql(source_db, target_config):
         password=target_config.get('password', '')
     )
     target_cursor = target_conn.cursor()
-    
+
     # Get tables from source
-    source_cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
+    source_cursor.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
     tables = [row[0] for row in source_cursor.fetchall()]
-    
+
     print(f"\n📋 Checking {len(tables)} tables...\n")
-    
+
     all_match = True
     total_source = 0
     total_target = 0
-    
+
     for table in tables:
         # Count source rows
         source_cursor.execute(f"SELECT COUNT(*) FROM {table}")
         source_count = source_cursor.fetchone()[0]
         total_source += source_count
-        
+
         # Count target rows
         try:
             target_cursor.execute(f'SELECT COUNT(*) FROM "{table}"')
             target_count = target_cursor.fetchone()[0]
             total_target += target_count
-        except:
+        except BaseException:
             target_count = 0
-        
+
         # Compare
         if source_count == target_count:
             print(f"  ✅ {table}: {source_count:,} ↔ {target_count:,}")
         else:
             print(f"  ❌ {table}: {source_count:,} ↔ {target_count:,} (MISMATCH!)")
             all_match = False
-    
+
     source_conn.close()
     target_conn.close()
-    
+
     print("\n" + "=" * 60)
     if all_match:
         print("✅ VERIFICATION PASSED!")
@@ -94,14 +95,14 @@ def verify_mysql(source_db, target_config):
     if not HAS_MYSQL:
         print("❌ pymysql not installed")
         sys.exit(1)
-    
+
     print("🔍 VERIFICATION: SQLite → MySQL")
     print("=" * 60)
-    
+
     # Connect to source
     source_conn = sqlite3.connect(source_db)
     source_cursor = source_conn.cursor()
-    
+
     # Connect to target
     target_conn = pymysql.connect(
         host=target_config['host'],
@@ -111,41 +112,42 @@ def verify_mysql(source_db, target_config):
         password=target_config.get('password', '')
     )
     target_cursor = target_conn.cursor()
-    
+
     # Get tables from source
-    source_cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
+    source_cursor.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
     tables = [row[0] for row in source_cursor.fetchall()]
-    
+
     print(f"\n📋 Checking {len(tables)} tables...\n")
-    
+
     all_match = True
     total_source = 0
     total_target = 0
-    
+
     for table in tables:
         # Count source rows
         source_cursor.execute(f"SELECT COUNT(*) FROM {table}")
         source_count = source_cursor.fetchone()[0]
         total_source += source_count
-        
+
         # Count target rows
         try:
             target_cursor.execute(f'SELECT COUNT(*) FROM `{table}`')
             target_count = target_cursor.fetchone()[0]
             total_target += target_count
-        except:
+        except BaseException:
             target_count = 0
-        
+
         # Compare
         if source_count == target_count:
             print(f"  ✅ {table}: {source_count:,} ↔ {target_count:,}")
         else:
             print(f"  ❌ {table}: {source_count:,} ↔ {target_count:,} (MISMATCH!)")
             all_match = False
-    
+
     source_conn.close()
     target_conn.close()
-    
+
     print("\n" + "=" * 60)
     if all_match:
         print("✅ VERIFICATION PASSED!")
@@ -160,15 +162,21 @@ def verify_mysql(source_db, target_config):
 def main():
     parser = argparse.ArgumentParser(description='Verify database migration')
     parser.add_argument('--source', required=True, help='Source SQLite database')
-    parser.add_argument('--target-type', required=True, choices=['postgresql', 'mysql'], help='Target database type')
+    parser.add_argument(
+        '--target-type',
+        required=True,
+        choices=[
+            'postgresql',
+            'mysql'],
+        help='Target database type')
     parser.add_argument('--target-host', required=True, help='Target database host')
     parser.add_argument('--target-port', type=int, help='Target database port')
     parser.add_argument('--target-database', required=True, help='Target database name')
     parser.add_argument('--target-user', help='Target database user')
     parser.add_argument('--target-password', help='Target database password')
-    
+
     args = parser.parse_args()
-    
+
     target_config = {
         'host': args.target_host,
         'port': args.target_port,
@@ -176,7 +184,7 @@ def main():
         'user': args.target_user,
         'password': args.target_password
     }
-    
+
     if args.target_type == 'postgresql':
         verify_postgresql(args.source, target_config)
     elif args.target_type == 'mysql':

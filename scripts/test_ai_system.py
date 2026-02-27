@@ -4,19 +4,17 @@ AI System Diagnostic Tool
 Tests all AI components to ensure they are working correctly
 """
 
+from src.core.database import Database
+from src.core.config import Config
+from src.ml import TradeAnalyzer, PerformanceAnalyzer, SignalScorer
+from src.ml.adaptive_tactics import AdaptiveTacticsManager
+from src.ml.ai_commentary import AICommentaryGenerator
 import sys
-import os
 from pathlib import Path
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
-
-from src.ml.ai_commentary import AICommentaryGenerator
-from src.ml.adaptive_tactics import AdaptiveTacticsManager
-from src.ml import TradeAnalyzer, PerformanceAnalyzer, SignalScorer
-from src.core.config import Config
-from src.core.database import Database
 
 
 def print_header(text):
@@ -37,21 +35,21 @@ def print_test(name, status, details=""):
 def test_ml_analyzers():
     """Test ML analyzer components"""
     print_header("TESTING ML ANALYZERS")
-    
+
     config = Config()
     db_path = config.db_path
-    
+
     # Test TradeAnalyzer
     try:
         analyzer = TradeAnalyzer(db_path=db_path)
         stats = analyzer.analyze_performance(days=7)
-        print_test("TradeAnalyzer", True, 
+        print_test("TradeAnalyzer", True,
                    f"Analyzed {stats.get('total_trades', 0)} trades, "
                    f"{stats.get('win_rate', 0):.1f}% win rate")
     except Exception as e:
         print_test("TradeAnalyzer", False, f"Error: {e}")
         return False
-    
+
     # Test PerformanceAnalyzer
     try:
         perf_analyzer = PerformanceAnalyzer(db_path=db_path)
@@ -62,7 +60,7 @@ def test_ml_analyzers():
     except Exception as e:
         print_test("PerformanceAnalyzer", False, f"Error: {e}")
         return False
-    
+
     # Test SignalScorer
     try:
         scorer = SignalScorer(db_path=db_path)
@@ -73,7 +71,7 @@ def test_ml_analyzers():
     except Exception as e:
         print_test("SignalScorer", False, f"Error: {e}")
         return False
-    
+
     # Test get_symbol_stats
     try:
         symbol_stats = scorer.get_symbol_stats('BTCUSDT', days=30)
@@ -83,7 +81,7 @@ def test_ml_analyzers():
     except Exception as e:
         print_test("SignalScorer.get_symbol_stats", False, f"Error: {e}")
         return False
-    
+
     # Test get_side_stats
     try:
         side_stats = scorer.get_side_stats('BTCUSDT', 'BUY', days=30)
@@ -93,31 +91,31 @@ def test_ml_analyzers():
     except Exception as e:
         print_test("SignalScorer.get_side_stats", False, f"Error: {e}")
         return False
-    
+
     return True
 
 
 def test_ai_commentary():
     """Test AI Commentary Generator"""
     print_header("TESTING AI COMMENTARY")
-    
+
     try:
         ai = AICommentaryGenerator()
         print_test("AICommentaryGenerator initialization", True)
     except Exception as e:
         print_test("AICommentaryGenerator initialization", False, f"Error: {e}")
         return False
-    
+
     # Test position open commentary
     try:
         commentary = ai.generate_position_open_commentary('BTCUSDT', 'BUY', 0.85)
-        print_test("Position Open Commentary", True, 
+        print_test("Position Open Commentary", True,
                    f"Generated {len(commentary)} chars")
         print(f"\n   Sample output:\n   {commentary[:200]}...\n")
     except Exception as e:
         print_test("Position Open Commentary", False, f"Error: {e}")
         return False
-    
+
     # Test position close commentary
     try:
         commentary = ai.generate_position_close_commentary('BTCUSDT', 'BUY', 25.50, 2.5)
@@ -127,7 +125,7 @@ def test_ai_commentary():
     except Exception as e:
         print_test("Position Close Commentary", False, f"Error: {e}")
         return False
-    
+
     # Test daily summary commentary
     try:
         commentary = ai.generate_daily_summary_commentary(50.00, 3)
@@ -137,7 +135,7 @@ def test_ai_commentary():
     except Exception as e:
         print_test("Daily Summary Commentary", False, f"Error: {e}")
         return False
-    
+
     # Test cache
     try:
         cache_info = ai._cache
@@ -146,14 +144,14 @@ def test_ai_commentary():
                    f"{cache_size} cached entries")
     except Exception as e:
         print_test("AI Commentary Cache", False, f"Error: {e}")
-    
+
     return True
 
 
 def test_adaptive_tactics():
     """Test Adaptive Tactics Manager"""
     print_header("TESTING ADAPTIVE TACTICS")
-    
+
     try:
         config = Config()
         database = Database(config)
@@ -162,14 +160,14 @@ def test_adaptive_tactics():
     except Exception as e:
         print_test("AdaptiveTacticsManager initialization", False, f"Error: {e}")
         return False
-    
+
     # Test analyze and adjust
     try:
         result = tactics.analyze_and_adjust()
         adjustments = result.get('adjustments', [])
         print_test("Analyze and Adjust", True,
                    f"Made {len(adjustments)} tactical adjustments")
-        
+
         if adjustments:
             print("\n   Recent adjustments:")
             for adj in adjustments[:3]:
@@ -177,35 +175,35 @@ def test_adaptive_tactics():
     except Exception as e:
         print_test("Analyze and Adjust", False, f"Error: {e}")
         return False
-    
+
     # Test get current tactics
     try:
         current = tactics.get_current_tactics()
         print_test("Get Current Tactics", True,
                    f"Position multiplier: {current.get('position_size_multiplier', 1.0):.2f}, "
                    f"Confidence threshold: {current.get('confidence_threshold', 0.5):.2f}")
-        
+
         print("\n   Current Tactics:")
         print(f"   • Position size multiplier: {current.get('position_size_multiplier', 1.0):.2f}")
         print(f"   • Confidence threshold: {current.get('confidence_threshold', 0.5):.2f}")
         print(f"   • Max positions: {current.get('max_positions', 0)}")
-        
+
         blocked = current.get('blocked_symbols', [])
         if blocked:
             print(f"   • Blocked symbols: {', '.join(blocked)}")
         else:
-            print(f"   • Blocked symbols: None")
+            print("   • Blocked symbols: None")
     except Exception as e:
         print_test("Get Current Tactics", False, f"Error: {e}")
         return False
-    
+
     return True
 
 
 def test_integration():
     """Test integration with bot components"""
     print_header("TESTING INTEGRATION")
-    
+
     # Test database connection
     try:
         config = Config()
@@ -217,7 +215,7 @@ def test_integration():
     except Exception as e:
         print_test("Database Connection", False, f"Error: {e}")
         return False
-    
+
     # Test config loading
     try:
         config = Config()
@@ -227,7 +225,7 @@ def test_integration():
     except Exception as e:
         print_test("Config Loading", False, f"Error: {e}")
         return False
-    
+
     return True
 
 
@@ -237,18 +235,18 @@ def main():
     print("🤖" * 40)
     print("  AI SYSTEM DIAGNOSTICS")
     print("🤖" * 40)
-    
+
     all_passed = True
-    
+
     # Run tests
     all_passed &= test_ml_analyzers()
     all_passed &= test_ai_commentary()
     all_passed &= test_adaptive_tactics()
     all_passed &= test_integration()
-    
+
     # Summary
     print_header("DIAGNOSTIC SUMMARY")
-    
+
     if all_passed:
         print("\n✅ ALL TESTS PASSED - AI System is fully operational!\n")
         print("The AI is working correctly and ready to:")

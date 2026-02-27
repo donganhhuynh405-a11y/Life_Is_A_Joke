@@ -1,0 +1,364 @@
+openapi: "3.0.3"
+info:
+  title: Life Is A Joke - Trading Bot API
+  description: |
+    REST API for monitoring and controlling the crypto trading bot.
+    All endpoints require Bearer token authentication.
+  version: "1.0.0"
+  contact:
+    name: Trading Bot Support
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local development
+  - url: https://your-server.example.com/api/v1
+    description: Production
+
+security:
+  - BearerAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+
+  schemas:
+    Signal:
+      type: object
+      properties:
+        symbol:
+          type: string
+          example: "BTC/USDT"
+        action:
+          type: string
+          enum: [BUY, SELL, HOLD]
+        confidence:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+          example: 0.82
+        strategy:
+          type: string
+          example: "enhanced_multi_indicator"
+        ml_prediction:
+          type: string
+          enum: [UP, DOWN, NEUTRAL]
+        sentiment_score:
+          type: number
+          format: float
+          example: 0.65
+        timestamp:
+          type: string
+          format: date-time
+
+    Position:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "pos_001"
+        symbol:
+          type: string
+          example: "BTC/USDT"
+        side:
+          type: string
+          enum: [long, short]
+        size:
+          type: number
+          example: 0.01
+        entry_price:
+          type: number
+          example: 42000.00
+        current_price:
+          type: number
+          example: 43500.00
+        unrealized_pnl:
+          type: number
+          example: 15.00
+        unrealized_pnl_pct:
+          type: number
+          example: 3.57
+        stop_loss:
+          type: number
+          example: 41000.00
+        take_profit:
+          type: number
+          example: 45000.00
+        opened_at:
+          type: string
+          format: date-time
+
+    Trade:
+      type: object
+      properties:
+        id:
+          type: string
+        symbol:
+          type: string
+        side:
+          type: string
+          enum: [buy, sell]
+        quantity:
+          type: number
+        price:
+          type: number
+        fee:
+          type: number
+        pnl:
+          type: number
+        pnl_pct:
+          type: number
+        strategy:
+          type: string
+        executed_at:
+          type: string
+          format: date-time
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        code:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      security: []
+      tags: [System]
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "healthy"
+                  uptime_seconds:
+                    type: integer
+                  version:
+                    type: string
+                  environment:
+                    type: string
+
+  /status:
+    get:
+      summary: Full bot status
+      tags: [System]
+      responses:
+        "200":
+          description: Bot status with P&L summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  running:
+                    type: boolean
+                  environment:
+                    type: string
+                  active_positions:
+                    type: integer
+                  total_trades_today:
+                    type: integer
+                  pnl_today_pct:
+                    type: number
+                  portfolio_value_usdt:
+                    type: number
+                  last_signal:
+                    $ref: "#/components/schemas/Signal"
+
+  /positions:
+    get:
+      summary: List open positions
+      tags: [Positions]
+      responses:
+        "200":
+          description: List of open positions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  positions:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Position"
+
+  /positions/{id}:
+    delete:
+      summary: Close a position
+      tags: [Positions]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Position closed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  fill_price:
+                    type: number
+        "404":
+          description: Position not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /signals:
+    get:
+      summary: Latest trading signals
+      tags: [Signals]
+      parameters:
+        - name: symbol
+          in: query
+          schema:
+            type: string
+          example: "BTC/USDT"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+            maximum: 100
+      responses:
+        "200":
+          description: Trading signals
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  signals:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Signal"
+
+  /trades:
+    get:
+      summary: Trade history
+      tags: [Trades]
+      parameters:
+        - name: symbol
+          in: query
+          schema:
+            type: string
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: Trade history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  trades:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Trade"
+                  total:
+                    type: integer
+                  summary:
+                    type: object
+                    properties:
+                      total_pnl:
+                        type: number
+                      win_rate:
+                        type: number
+                      total_trades:
+                        type: integer
+
+  /bot/start:
+    post:
+      summary: Start the trading bot
+      tags: [Control]
+      responses:
+        "200":
+          description: Bot started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  pid:
+                    type: integer
+
+  /bot/stop:
+    post:
+      summary: Stop the trading bot
+      tags: [Control]
+      responses:
+        "200":
+          description: Bot stopped
+
+  /bot/pause:
+    post:
+      summary: Pause signal processing
+      tags: [Control]
+      responses:
+        "200":
+          description: Bot paused
+
+  /config:
+    get:
+      summary: Get active configuration (secrets redacted)
+      tags: [Configuration]
+      responses:
+        "200":
+          description: Current configuration
+
+  /config/reload:
+    post:
+      summary: Reload configuration from disk
+      tags: [Configuration]
+      responses:
+        "200":
+          description: Configuration reloaded
+
+  /metrics:
+    get:
+      summary: Prometheus metrics
+      security: []
+      tags: [System]
+      responses:
+        "200":
+          description: Prometheus text format metrics
+          content:
+            text/plain:
+              schema:
+                type: string
