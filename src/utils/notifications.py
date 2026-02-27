@@ -19,11 +19,16 @@ except ImportError:
 
 class TelegramNotifier:
     """Telegram notification handler for trading bot with multilingual support"""
-    
-    def __init__(self, bot_token: Optional[str] = None, chat_id: Optional[str] = None, enabled: bool = True, language: str = 'en'):
+
+    def __init__(
+            self,
+            bot_token: Optional[str] = None,
+            chat_id: Optional[str] = None,
+            enabled: bool = True,
+            language: str = 'en'):
         """
         Initialize Telegram notifier
-        
+
         Args:
             bot_token: Telegram bot token
             chat_id: Telegram chat ID
@@ -34,12 +39,12 @@ class TelegramNotifier:
         self.enabled = enabled
         self.bot_token = bot_token or os.getenv('TELEGRAM_BOT_TOKEN', '')
         self.chat_id = chat_id or os.getenv('TELEGRAM_CHAT_ID', '')
-        
+
         # Initialize deduplication cache - prevents sending duplicate notifications
         # Key: (notification_type, symbol, side), Value: timestamp of last notification
         self._notification_cache: Dict[tuple, float] = {}
         self._cache_timeout = 60  # seconds - notifications for same position within this time are considered duplicates
-        
+
         # Initialize translation manager
         self.language = language or os.getenv('NOTIFICATION_LANGUAGE', 'en')
         if TRANSLATIONS_AVAILABLE:
@@ -48,48 +53,49 @@ class TelegramNotifier:
         else:
             self.translator = None
             self.logger.warning("Translations module not available, using English")
-        
+
         if self.enabled:
             if not self.bot_token or not self.chat_id:
-                self.logger.warning("Telegram bot token or chat ID not configured. Notifications disabled.")
+                self.logger.warning(
+                    "Telegram bot token or chat ID not configured. Notifications disabled.")
                 self.enabled = False
             else:
                 self.logger.info("Telegram notifier initialized successfully (using requests)")
-    
+
     def t(self, key, default=None):
         """
         Get translation for a key
-        
+
         Args:
             key: Translation key
             default: Default value if translator not available
-            
+
         Returns:
             Translated string
         """
         if self.translator:
             return self.translator.get(key, default)
         return default or key
-    
+
     def send_message(self, message: str, parse_mode: str = 'HTML') -> bool:
         """
         Send a message to Telegram using direct HTTP request
-        
+
         Args:
             message: Message text
             parse_mode: Parse mode (HTML or Markdown)
-            
+
         Returns:
             True if sent successfully, False otherwise
         """
         if not self.enabled:
             return False
-        
+
         try:
             # Truncate message to Telegram's limit
             if len(message) > 4096:
                 message = message[:4093] + "..."
-            
+
             # Send via direct HTTP request to Telegram API
             url = f"https://api.telegram.org/bot{self.bot_token}/sendMessage"
             payload = {
@@ -97,55 +103,55 @@ class TelegramNotifier:
                 "text": message,
                 "parse_mode": parse_mode
             }
-            
+
             response = requests.post(url, json=payload, timeout=10)
             response.raise_for_status()
-            
+
             self.logger.info("Telegram message sent successfully")
             return True
-            
+
         except requests.exceptions.RequestException as e:
             self.logger.error(f"Failed to send Telegram message: {e}")
             return False
         except Exception as e:
             self.logger.error(f"Failed to send Telegram message: {e}", exc_info=True)
             return False
-    
+
     def _is_duplicate_notification(self, notification_type: str, symbol: str, side: str) -> bool:
         """
         Check if this notification was recently sent (within cache timeout)
-        
+
         Args:
             notification_type: Type of notification (e.g., 'position_opened', 'position_closed')
             symbol: Trading symbol
             side: BUY or SELL
-            
+
         Returns:
             True if this is a duplicate notification, False otherwise
         """
         import time
         cache_key = (notification_type, symbol, side)
         current_time = time.time()
-        
+
         # Check if notification exists in cache and is still fresh
         if cache_key in self._notification_cache:
             last_notification_time = self._notification_cache[cache_key]
             time_since_last = current_time - last_notification_time
-            
+
             # Reduce timeout to 10 seconds for position_opened to allow multiple positions
             # on the same symbol to be notified properly
             timeout = 10 if notification_type == 'position_opened' else self._cache_timeout
-            
+
             if time_since_last < timeout:
                 self.logger.warning(
                     f"Duplicate notification blocked: {notification_type} for {symbol} {side} "
                     f"(last sent {time_since_last:.1f}s ago, timeout: {timeout}s)"
                 )
                 return True
-        
+
         # Update cache with current time
         self._notification_cache[cache_key] = current_time
-        
+
         # Clean old entries from cache (older than 2x timeout)
         expired_keys = [
             key for key, timestamp in self._notification_cache.items()
@@ -153,15 +159,15 @@ class TelegramNotifier:
         ]
         for key in expired_keys:
             del self._notification_cache[key]
-        
+
         return False
-    
-    def notify_position_opened(self, symbol: str, side: str, quantity: float, 
-                              price: float, strategy: str = "Unknown", score: int = None, 
-                              open_positions_count: int = None) -> bool:
+
+    def notify_position_opened(self, symbol: str, side: str, quantity: float,
+                               price: float, strategy: str = "Unknown", score: int = None,
+                               open_positions_count: int = None) -> bool:
         """
         Notify about opened position with duplicate prevention
-        
+
         Args:
             symbol: Trading pair symbol
             side: BUY or SELL
@@ -170,7 +176,7 @@ class TelegramNotifier:
             strategy: Strategy name
             score: Signal confidence score (0-100)
             open_positions_count: Number of currently open positions
-            
+
         Returns:
             True if sent successfully, False if duplicate or failed
         """
@@ -179,7 +185,7 @@ class TelegramNotifier:
             self.logger.info(f"Skipping duplicate position opened notification for {symbol} {side}")
             return False
         emoji = "🟢" if str(side).upper() == "BUY" else "🔴"  # Define early for except block
-        
+
         try:
             # SAFELY convert all numeric values to float with fallback
             try:
@@ -187,17 +193,17 @@ class TelegramNotifier:
             except (ValueError, TypeError, AttributeError):
                 self.logger.warning(f"Could not convert price '{price}' to float, using 0.0")
                 price = 0.0
-            
+
             try:
                 quantity = float(quantity) if quantity not in [None, 'None', 'none', ''] else 0.0
             except (ValueError, TypeError, AttributeError):
                 self.logger.warning(f"Could not convert quantity '{quantity}' to float, using 0.0")
                 quantity = 0.0
-            
+
             # Build message with safe string formatting
             score_text = f"\n⭐ Signal Score: <b>{score}/100</b>" if score is not None else ""
             positions_text = f"\n📋 Open Positions: <b>{open_positions_count}</b>" if open_positions_count is not None else ""
-            
+
             # Generate AI commentary
             ai_commentary = ""
             try:
@@ -211,7 +217,7 @@ class TelegramNotifier:
                 self.logger.error(f"Could not generate AI commentary: {e}", exc_info=True)
                 # Add visible error to notification instead of silently failing
                 ai_commentary = "\n\n⚠️ <i>AI Commentary unavailable</i>"
-            
+
             message = f"""
 {emoji} <b>Position Opened</b>
 
@@ -225,7 +231,9 @@ class TelegramNotifier:
 """
             return self.send_message(message.strip())
         except Exception as e:
-            self.logger.error(f"Error formatting position opened notification: {e}. price={price}, quantity={quantity}", exc_info=True)
+            self.logger.error(
+                f"Error formatting position opened notification: {e}. price={price}, quantity={quantity}",
+                exc_info=True)
             # Send simplified notification without formatting
             try:
                 simplified_message = f"""
@@ -241,15 +249,15 @@ class TelegramNotifier:
             except Exception as e2:
                 self.logger.error(f"Failed to send even simplified notification: {e2}")
                 return False
-    
+
     def notify_position_closed(self, symbol: str, side: str, quantity: float,
-                              entry_price: float, exit_price: float, 
-                              pnl: float, pnl_percent: float, 
-                              strategy: str = "Unknown", score: int = None,
-                              open_positions_count: int = None) -> bool:
+                               entry_price: float, exit_price: float,
+                               pnl: float, pnl_percent: float,
+                               strategy: str = "Unknown", score: int = None,
+                               open_positions_count: int = None) -> bool:
         """
         Notify about closed position with duplicate prevention
-        
+
         Args:
             symbol: Trading pair symbol
             side: BUY or SELL (original position)
@@ -261,7 +269,7 @@ class TelegramNotifier:
             strategy: Strategy name
             score: Signal confidence score (0-100)
             open_positions_count: Number of currently open positions
-            
+
         Returns:
             True if sent successfully, False if duplicate or failed
         """
@@ -269,46 +277,52 @@ class TelegramNotifier:
         if self._is_duplicate_notification('position_closed', symbol, side):
             self.logger.info(f"Skipping duplicate position closed notification for {symbol} {side}")
             return False
-        
+
         try:
             # SAFELY convert all numeric values to float with fallback
             try:
-                entry_price = float(entry_price) if entry_price not in [None, 'None', 'none', ''] else 0.0
+                entry_price = float(entry_price) if entry_price not in [
+                    None, 'None', 'none', ''] else 0.0
             except (ValueError, TypeError, AttributeError):
-                self.logger.warning(f"Could not convert entry_price '{entry_price}' to float, using 0.0")
+                self.logger.warning(
+                    f"Could not convert entry_price '{entry_price}' to float, using 0.0")
                 entry_price = 0.0
-            
+
             try:
-                exit_price = float(exit_price) if exit_price not in [None, 'None', 'none', ''] else 0.0
+                exit_price = float(exit_price) if exit_price not in [
+                    None, 'None', 'none', ''] else 0.0
             except (ValueError, TypeError, AttributeError):
-                self.logger.warning(f"Could not convert exit_price '{exit_price}' to float, using 0.0")
+                self.logger.warning(
+                    f"Could not convert exit_price '{exit_price}' to float, using 0.0")
                 exit_price = 0.0
-            
+
             try:
                 quantity = float(quantity) if quantity not in [None, 'None', 'none', ''] else 0.0
             except (ValueError, TypeError, AttributeError):
                 self.logger.warning(f"Could not convert quantity '{quantity}' to float, using 0.0")
                 quantity = 0.0
-            
+
             try:
                 pnl = float(pnl) if pnl not in [None, 'None', 'none', ''] else 0.0
             except (ValueError, TypeError, AttributeError):
                 self.logger.warning(f"Could not convert pnl '{pnl}' to float, using 0.0")
                 pnl = 0.0
-            
+
             try:
-                pnl_percent = float(pnl_percent) if pnl_percent not in [None, 'None', 'none', ''] else 0.0
+                pnl_percent = float(pnl_percent) if pnl_percent not in [
+                    None, 'None', 'none', ''] else 0.0
             except (ValueError, TypeError, AttributeError):
-                self.logger.warning(f"Could not convert pnl_percent '{pnl_percent}' to float, using 0.0")
+                self.logger.warning(
+                    f"Could not convert pnl_percent '{pnl_percent}' to float, using 0.0")
                 pnl_percent = 0.0
-            
+
             profit = pnl > 0
             emoji = "✅" if profit else "❌"
             pnl_emoji = "💰" if profit else "💸"
-            
+
             score_text = f"\n⭐ Signal Score: <b>{score}/100</b>" if score is not None else ""
             positions_text = f"\n📋 Open Positions: <b>{open_positions_count}</b>" if open_positions_count is not None else ""
-            
+
             # Format P&L with adaptive decimal places for small values
             # Use more decimals for values < $0.01 to show actual loss/profit
             if abs(pnl) < 0.01:
@@ -317,7 +331,7 @@ class TelegramNotifier:
                 pnl_str = f"${pnl:+.4f}".rstrip('0').rstrip('.')
             else:
                 pnl_str = f"${pnl:+,.2f}"
-            
+
             # Generate AI commentary
             ai_commentary = ""
             try:
@@ -330,7 +344,7 @@ class TelegramNotifier:
                 self.logger.error(f"Could not generate AI commentary: {e}", exc_info=True)
                 # Add visible error to notification instead of silently failing
                 ai_commentary = "\n\n⚠️ <i>AI Commentary unavailable</i>"
-            
+
             message = f"""
 {emoji} <b>Position Closed</b>
 
@@ -364,13 +378,13 @@ class TelegramNotifier:
             except Exception as e2:
                 self.logger.error(f"Failed to send even simplified notification: {e2}")
                 return False
-    
+
     def notify_stop_loss_triggered(self, symbol: str, side: str, quantity: float,
                                    entry_price: float, stop_price: float,
                                    loss: float, loss_percent: float) -> bool:
         """
         Notify about stop-loss trigger
-        
+
         Args:
             symbol: Trading pair symbol
             side: Original position side
@@ -379,7 +393,7 @@ class TelegramNotifier:
             stop_price: Stop-loss price
             loss: Loss amount
             loss_percent: Loss percentage
-            
+
         Returns:
             True if sent successfully
         """
@@ -390,7 +404,7 @@ class TelegramNotifier:
             quantity = float(quantity) if quantity is not None else 0.0
             loss = float(loss) if loss is not None else 0.0
             loss_percent = float(loss_percent) if loss_percent is not None else 0.0
-            
+
             message = f"""
 ⚠️ <b>Stop-Loss Triggered</b>
 
@@ -408,13 +422,13 @@ class TelegramNotifier:
         except (ValueError, TypeError) as e:
             self.logger.error(f"Error formatting stop-loss notification: {e}")
             return False
-    
+
     def notify_take_profit_triggered(self, symbol: str, side: str, quantity: float,
                                      entry_price: float, tp_price: float,
                                      profit: float, profit_percent: float) -> bool:
         """
         Notify about take-profit trigger
-        
+
         Args:
             symbol: Trading pair symbol
             side: Original position side
@@ -423,7 +437,7 @@ class TelegramNotifier:
             tp_price: Take-profit price
             profit: Profit amount
             profit_percent: Profit percentage
-            
+
         Returns:
             True if sent successfully
         """
@@ -434,7 +448,7 @@ class TelegramNotifier:
             quantity = float(quantity) if quantity is not None else 0.0
             profit = float(profit) if profit is not None else 0.0
             profit_percent = float(profit_percent) if profit_percent is not None else 0.0
-            
+
             message = f"""
 🎯 <b>Take-Profit Triggered</b>
 
@@ -452,14 +466,14 @@ class TelegramNotifier:
         except (ValueError, TypeError) as e:
             self.logger.error(f"Error formatting take-profit notification: {e}")
             return False
-    
+
     def notify_daily_summary(self, total_trades: int, winning_trades: int,
-                           losing_trades: int, total_pnl: float,
-                           win_rate: float, largest_win: float,
-                           largest_loss: float, strategy: str = "Unknown") -> bool:
+                             losing_trades: int, total_pnl: float,
+                             win_rate: float, largest_win: float,
+                             largest_loss: float, strategy: str = "Unknown") -> bool:
         """
         Send daily trading summary
-        
+
         Args:
             total_trades: Total number of trades
             winning_trades: Number of winning trades
@@ -469,12 +483,12 @@ class TelegramNotifier:
             largest_win: Largest winning trade
             largest_loss: Largest losing trade
             strategy: Active trading strategy
-            
+
         Returns:
             True if sent successfully
         """
         pnl_emoji = "💰" if total_pnl > 0 else "💸" if total_pnl < 0 else "➖"
-        
+
         message = f"""
 📊 <b>Daily Summary</b>
 
@@ -491,17 +505,17 @@ class TelegramNotifier:
 📅 Date: {datetime.now().strftime('%Y-%m-%d')}
 """
         return self.send_message(message.strip())
-    
-    def notify_error(self, error_type: str, error_message: str, 
-                    details: Optional[str] = None) -> bool:
+
+    def notify_error(self, error_type: str, error_message: str,
+                     details: Optional[str] = None) -> bool:
         """
         Notify about critical error
-        
+
         Args:
             error_type: Type of error
             error_message: Error message
             details: Additional details
-            
+
         Returns:
             True if sent successfully
         """
@@ -513,27 +527,27 @@ class TelegramNotifier:
 """
         if details:
             message += f"\n📋 Details:\n<code>{details}</code>\n"
-        
+
         message += f"\n⏰ Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-        
+
         return self.send_message(message.strip())
-    
+
     def notify_risk_limit_warning(self, limit_type: str, current_value: float,
-                                 max_value: float, unit: str = "") -> bool:
+                                  max_value: float, unit: str = "") -> bool:
         """
         Notify about risk limit warning
-        
+
         Args:
             limit_type: Type of limit (e.g., "Daily Loss", "Max Positions")
             current_value: Current value
             max_value: Maximum allowed value
             unit: Unit of measurement (e.g., "%", "$")
-            
+
         Returns:
             True if sent successfully
         """
         percentage = (current_value / max_value * 100) if max_value > 0 else 0
-        
+
         message = f"""
 ⚠️ <b>Risk Limit Warning</b>
 
@@ -545,25 +559,25 @@ class TelegramNotifier:
 ⏰ Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 """
         return self.send_message(message.strip())
-    
+
     def notify_bot_started(self, exchange: str, trading_enabled: bool,
-                          max_positions: int, max_daily_trades: int, 
-                          strategy: str = "Unknown") -> bool:
+                           max_positions: int, max_daily_trades: int,
+                           strategy: str = "Unknown") -> bool:
         """
         Notify about bot startup
-        
+
         Args:
             exchange: Exchange name
             trading_enabled: Whether trading is enabled
             max_positions: Maximum open positions
             max_daily_trades: Maximum daily trades
             strategy: Active trading strategy
-            
+
         Returns:
             True if sent successfully
         """
         status = "🟢 ENABLED" if trading_enabled else "🟡 MONITORING ONLY"
-        
+
         message = f"""
 {self.t('bot_started', '🤖 <b>Trading Bot Started</b>')}
 
@@ -576,19 +590,19 @@ class TelegramNotifier:
 ⏰ {self.t('time', 'Time')}: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 """
         return self.send_message(message.strip())
-    
-    def notify_hourly_summary(self, open_positions_count: int, 
-                             balance_data: Dict[str, float],
-                             daily_pnl: float,
-                             total_pnl: float = None,
-                             ai_tactics: Dict[str, Any] = None,
-                             trends: Dict[str, Dict] = None,
-                             strategy_adjustments: Dict[str, Any] = None,
-                             elite_ai_data: Dict[str, Any] = None,
-                             news_summary: Dict[str, Any] = None) -> bool:
+
+    def notify_hourly_summary(self, open_positions_count: int,
+                              balance_data: Dict[str, float],
+                              daily_pnl: float,
+                              total_pnl: float = None,
+                              ai_tactics: Dict[str, Any] = None,
+                              trends: Dict[str, Dict] = None,
+                              strategy_adjustments: Dict[str, Any] = None,
+                              elite_ai_data: Dict[str, Any] = None,
+                              news_summary: Dict[str, Any] = None) -> bool:
         """
         Send hourly status summary with trend analysis
-        
+
         Args:
             open_positions_count: Number of currently open positions
             balance_data: Dictionary of currency balances (e.g., {'USDT': 1000, 'BTC': 0.5})
@@ -599,7 +613,7 @@ class TelegramNotifier:
             strategy_adjustments: Strategy adjustments from advisor (optional)
             elite_ai_data: Elite AI analysis data (optional)
             news_summary: Crypto news summary with AI analysis (optional)
-            
+
         Returns:
             True if sent successfully
         """
@@ -608,27 +622,28 @@ class TelegramNotifier:
             balance_lines = []
             for currency, amount in balance_data.items():
                 try:
-                    amount_float = float(amount) if amount not in [None, 'None', 'none', ''] else 0.0
+                    amount_float = float(amount) if amount not in [
+                        None, 'None', 'none', ''] else 0.0
                 except (ValueError, TypeError, AttributeError):
                     amount_float = 0.0
-                
+
                 # Skip zero balances or add them with symbol
                 if amount_float > 0:
                     if currency == 'USDT' or currency.endswith('USD'):
                         balance_lines.append(f"💵 {currency}: <code>${amount_float:,.2f}</code>")
                     else:
                         balance_lines.append(f"🪙 {currency}: <code>{amount_float:.8f}</code>")
-            
+
             # If no balances, show message
             if not balance_lines:
                 balance_lines.append("💵 No significant balances")
-            
+
             # Safe P/L conversion
             try:
                 daily_pnl = float(daily_pnl) if daily_pnl not in [None, 'None', 'none', ''] else 0.0
             except (ValueError, TypeError, AttributeError):
                 daily_pnl = 0.0
-            
+
             # P/L emoji and formatting
             if daily_pnl > 0:
                 pnl_emoji = "💰"
@@ -639,10 +654,10 @@ class TelegramNotifier:
             else:
                 pnl_emoji = "➖"
                 pnl_sign = ""
-            
+
             # Build message
             balance_text = "\n".join(balance_lines)
-            
+
             # Generate AI daily commentary
             ai_commentary = ""
             try:
@@ -655,7 +670,7 @@ class TelegramNotifier:
                 self.logger.error(f"Could not generate AI commentary: {e}", exc_info=True)
                 # Add visible error to notification instead of silently failing
                 ai_commentary = "\n\n⚠️ <i>AI Commentary unavailable</i>"
-            
+
             message = f"""
 {self.t('hourly_summary', '📊 <b>Hourly Status Summary</b>')}
 
@@ -666,22 +681,24 @@ class TelegramNotifier:
 
 {pnl_emoji} <b>{self.t('daily_pnl', 'Daily P&L')}:</b> <code>{pnl_sign}${daily_pnl:,.2f}</code>
 """
-            
+
             # Add total P/L if provided
             if total_pnl is not None:
                 try:
-                    total_pnl = float(total_pnl) if total_pnl not in [None, 'None', 'none', ''] else 0.0
+                    total_pnl = float(total_pnl) if total_pnl not in [
+                        None, 'None', 'none', ''] else 0.0
                 except (ValueError, TypeError, AttributeError):
                     total_pnl = 0.0
-                
+
                 total_emoji = "💰" if total_pnl > 0 else "💸" if total_pnl < 0 else "➖"
                 total_sign = "+" if total_pnl > 0 else ""
-                message += f"{total_emoji} <b>{self.t('pnl', 'P&L')} Total:</b> <code>{total_sign}${total_pnl:,.2f}</code>\n"
-            
+                message += f"{total_emoji} <b>{self.t('pnl',
+                                                      'P&L')} Total:</b> <code>{total_sign}${total_pnl:,.2f}</code>\n"
+
             # Add AI commentary if available
             if ai_commentary:
                 message += ai_commentary + "\n"
-            
+
             # Add TREND ANALYSIS section if available
             if trends:
                 try:
@@ -689,9 +706,9 @@ class TelegramNotifier:
                     bearish = sum(1 for t in trends.values() if t.get('trend') == 'BEARISH')
                     sideways = sum(1 for t in trends.values() if t.get('trend') == 'SIDEWAYS')
                     total_symbols = len(trends)
-                    
+
                     message += f"\n📈 <b>{self.t('trend_analysis', 'Trend Analysis')}:</b>\n"
-                    
+
                     # Market overview
                     if bullish > bearish and bullish > sideways:
                         market_sentiment = f"Бычий рынок 🟢 ({bullish}/{total_symbols})"
@@ -699,20 +716,21 @@ class TelegramNotifier:
                         market_sentiment = f"Медвежий рынок 🔴 ({bearish}/{total_symbols})"
                     else:
                         market_sentiment = f"Смешанный рынок 🟡 ({bullish}↑ {bearish}↓ {sideways}↔️)"
-                    
-                    message += f"  📊 {self.t('market_sentiment', 'Market Sentiment')}: <b>{market_sentiment}</b>\n\n"
-                    
+
+                    message += f"  📊 {self.t('market_sentiment',
+                                             'Market Sentiment')}: <b>{market_sentiment}</b>\n\n"
+
                     # Show top 3 symbols with trends
                     message += "  <b>Топ символы:</b>\n"
                     trend_count = 0
                     for symbol, trend_info in list(trends.items())[:3]:
                         if trend_count >= 3:
                             break
-                        
+
                         trend_type = trend_info.get('trend', 'SIDEWAYS')
                         strength = trend_info.get('strength', 0)
                         adx = trend_info.get('adx', 0)
-                        
+
                         # Emoji based on trend
                         if trend_type == 'BULLISH':
                             trend_emoji = "📈"
@@ -720,7 +738,7 @@ class TelegramNotifier:
                             trend_emoji = "📉"
                         else:
                             trend_emoji = "↔️"
-                        
+
                         # Generate trading strategy
                         if trend_type == 'BULLISH':
                             if strength > 0.7 and adx > 30:
@@ -738,67 +756,70 @@ class TelegramNotifier:
                                 strategy = "Минимальные позиции"
                         else:
                             strategy = "Ждать прорыва" if adx < 20 else "Range-торговля"
-                        
-                        message += f"  {trend_emoji} <code>{symbol}</code>: {strength*100:.0f}% ADX:{adx:.0f} - <i>{strategy}</i>\n"
+
+                        message += f"  {trend_emoji} <code>{symbol}</code>: {strength *
+                                                                             100:.0f}% ADX:{adx:.0f} - <i>{strategy}</i>\n"
                         trend_count += 1
-                    
+
                     # Trading plan summary
-                    strong_bullish = [s for s, t in trends.items() 
-                                    if t.get('trend') == 'BULLISH' and t.get('strength', 0) > 0.6]
-                    strong_bearish = [s for s, t in trends.items() 
-                                    if t.get('trend') == 'BEARISH' and t.get('strength', 0) > 0.6]
-                    
+                    strong_bullish = [s for s, t in trends.items()
+                                      if t.get('trend') == 'BULLISH' and t.get('strength', 0) > 0.6]
+                    strong_bearish = [s for s, t in trends.items()
+                                      if t.get('trend') == 'BEARISH' and t.get('strength', 0) > 0.6]
+
                     message += "\n  <b>📋 План на час:</b>\n"
                     if strong_bullish:
                         symbols_list = ", ".join(strong_bullish[:2])
                         if len(strong_bullish) > 2:
-                            symbols_list += f" +{len(strong_bullish)-2}"
+                            symbols_list += f" +{len(strong_bullish) - 2}"
                         message += f"  ✅ Покупать: <code>{symbols_list}</code>\n"
                     if strong_bearish:
                         symbols_list = ", ".join(strong_bearish[:2])
                         if len(strong_bearish) > 2:
-                            symbols_list += f" +{len(strong_bearish)-2}"
+                            symbols_list += f" +{len(strong_bearish) - 2}"
                         message += f"  ⛔ Избегать: <code>{symbols_list}</code>\n"
                     if not strong_bullish and not strong_bearish:
                         message += "  ⏸️ Режим ожидания: слабые тренды\n"
-                    
+
                     message += "  💡 Адаптация размера под тренд\n"
-                    
+
                 except Exception as e:
                     self.logger.error(f"Error formatting trend analysis: {e}")
                     message += "\n📈 Анализ трендов недоступен\n"
-            
+
             # Add AI Adaptive Tactics section if available
             if ai_tactics:
                 try:
                     position_mult = ai_tactics.get('position_size_multiplier', 1.0)
-                    confidence_threshold = ai_tactics.get('confidence_threshold', 0.5) * 100  # Convert to percentage
+                    confidence_threshold = ai_tactics.get(
+                        'confidence_threshold', 0.5) * 100  # Convert to percentage
                     max_pos = ai_tactics.get('max_positions', 'N/A')
                     blocked = ai_tactics.get('blocked_symbols', [])
-                    
+
                     message += "\n" + self.t('ai_adaptive_strategy') + "\n"
                     message += f"  📊 Position Size: <b>{position_mult:.0%}</b>\n"
                     message += f"  🎯 Min Confidence: <b>{confidence_threshold:.0f}%</b>\n"
                     message += f"  📋 Max Positions: <b>{max_pos}</b>\n"
-                    
+
                     if blocked:
                         blocked_str = ", ".join(blocked[:3])  # Show first 3
                         if len(blocked) > 3:
-                            blocked_str += f" +{len(blocked)-3} more"
+                            blocked_str += f" +{len(blocked) - 3} more"
                         message += f"  ⛔ Blocked Pairs: <code>{blocked_str}</code>\n"
                     else:
                         message += "  ✅ All pairs active\n"
                 except Exception as e:
                     self.logger.error(f"Error formatting AI tactics: {e}")
-            
+
             # Add Strategy Adjustments section if available
             if strategy_adjustments is not None:
-                self.logger.info(f"📊 Displaying strategy adjustments in notification: {strategy_adjustments}")
+                self.logger.info(
+                    f"📊 Displaying strategy adjustments in notification: {strategy_adjustments}")
                 try:
                     adjustments = strategy_adjustments.get('adjustments', {})
                     reasoning = strategy_adjustments.get('reasoning', [])
                     risk_level = strategy_adjustments.get('risk_level', 'normal')
-                    
+
                     # Risk level emoji
                     risk_emoji = {
                         'very_low': '🟢',
@@ -807,7 +828,7 @@ class TelegramNotifier:
                         'high': '🟠',
                         'critical': '🔴'
                     }.get(risk_level, '⚪')
-                    
+
                     # Translated risk level
                     risk_level_text = {
                         'very_low': self.t('risk_very_low', 'Very Low'),
@@ -816,48 +837,50 @@ class TelegramNotifier:
                         'high': self.t('risk_high', 'High'),
                         'critical': self.t('risk_critical', 'Critical')
                     }.get(risk_level, risk_level)
-                    
+
                     message += f"\n\n📊 <b>{self.t('strategy_status', 'AI Strategy Status')}:</b>\n"
-                    
+
                     # Always show risk level
-                    message += f"  {risk_emoji} {self.t('risk_level', 'Risk Level')}: <b>{risk_level_text}</b>\n"
-                    
+                    message += f"  {risk_emoji} {self.t('risk_level',
+                                                        'Risk Level')}: <b>{risk_level_text}</b>\n"
+
                     # Show adjustments section
                     message += f"\n  <b>{self.t('adjustments', 'Current Adjustments')}:</b>\n"
-                    
+
                     if adjustments:
                         if 'position_size_multiplier' in adjustments:
                             mult = adjustments['position_size_multiplier']
                             message += f"  📊 Position Size: <b>{mult:.0%}</b>\n"
-                        
+
                         if 'confidence_threshold' in adjustments:
                             conf = adjustments['confidence_threshold'] * 100
                             message += f"  🎯 Min Confidence: <b>{conf:.0f}%</b>\n"
-                        
+
                         if 'max_positions' in adjustments:
                             max_pos = adjustments['max_positions']
                             message += f"  📋 Max Positions: <b>{max_pos}</b>\n"
                     else:
-                        message += f"  ✅ {self.t('optimal_conditions', 'Optimal trading conditions - no adjustments needed')}\n"
-                    
+                        message += f"  ✅ {self.t('optimal_conditions',
+                                                 'Optimal trading conditions - no adjustments needed')}\n"
+
                     # Always show reasoning if available (independent of adjustments)
                     if reasoning and len(reasoning) > 0:
                         message += f"\n  <b>{self.t('reasoning', 'Reasoning')}:</b>\n"
                         for reason in reasoning[:3]:
                             message += f"  • {reason}\n"
-                        
+
                 except Exception as e:
                     self.logger.error(f"Error formatting strategy adjustments: {e}")
-            
+
             # Add Elite AI section if available
             if elite_ai_data:
                 try:
-                    self.logger.info(f"📊 Processing Elite AI data for notification: "
-                                   f"Regimes: {len(elite_ai_data.get('regimes', {}))}, "
-                                   f"MTF: {len(elite_ai_data.get('mtf_analysis', {}))}")
-                    
+                    self.logger.info("📊 Processing Elite AI data for notification: "
+                                     f"Regimes: {len(elite_ai_data.get('regimes', {}))}, "
+                                     f"MTF: {len(elite_ai_data.get('mtf_analysis', {}))}")
+
                     message += "\n\n🌟 <b>Elite AI Status:</b>\n"
-                    
+
                     # Market Regimes
                     regimes = elite_ai_data.get('regimes', {})
                     if regimes:
@@ -867,7 +890,7 @@ class TelegramNotifier:
                             confidence = regime_info.get('confidence', 0)
                             trending = regime_info.get('trending', False)
                             volatile = regime_info.get('volatile', False)
-                            
+
                             # Emoji based on regime
                             if 'UPTREND' in regime or 'BULLISH' in regime:
                                 regime_emoji = "📈"
@@ -875,12 +898,13 @@ class TelegramNotifier:
                                 regime_emoji = "📉"
                             else:
                                 regime_emoji = "↔️"
-                            
+
                             trend_marker = "🔥" if trending else "💤"
                             vol_marker = "⚡" if volatile else "🌊"
-                            
-                            message += f"  {regime_emoji} <code>{symbol}</code>: {regime} ({confidence:.0f}%) {trend_marker}{vol_marker}\n"
-                    
+
+                            message += f"  {regime_emoji} <code>{symbol}</code>: {regime} ({
+                                confidence:.0f}%) {trend_marker}{vol_marker}\n"
+
                     # MTF Analysis
                     mtf_analysis = elite_ai_data.get('mtf_analysis', {})
                     if mtf_analysis:
@@ -889,7 +913,7 @@ class TelegramNotifier:
                             alignment = mtf_info.get('alignment', 0)
                             recommendation = mtf_info.get('recommendation', 'NEUTRAL')
                             is_valid = mtf_info.get('is_valid', False)
-                            
+
                             # Emoji based on recommendation
                             if recommendation == 'BULLISH':
                                 rec_emoji = "🟢"
@@ -897,11 +921,12 @@ class TelegramNotifier:
                                 rec_emoji = "🔴"
                             else:
                                 rec_emoji = "🟡"
-                            
+
                             align_marker = "✅" if is_valid else "❌"
-                            
-                            message += f"  {rec_emoji} <code>{symbol}</code>: {alignment:.0f}% {recommendation} {align_marker}\n"
-                    
+
+                            message += f"  {rec_emoji} <code>{symbol}</code>: {
+                                alignment:.0f}% {recommendation} {align_marker}\n"
+
                     # Risk & Position Management Status
                     status_items = []
                     if elite_ai_data.get('risk_management'):
@@ -909,31 +934,31 @@ class TelegramNotifier:
                     if elite_ai_data.get('position_management'):
                         monitored = elite_ai_data.get('monitored_positions', 0)
                         status_items.append(f"🎯 Positions Managed: {monitored}")
-                    
+
                     if status_items:
                         message += "\n  <b>🛡️ Active Features:</b>\n"
                         for item in status_items:
                             message += f"  • {item}\n"
-                    
+
                 except Exception as e:
                     self.logger.error(f"Error formatting Elite AI data: {e}")
-            
+
             # Add CRYPTO NEWS section if available or show status
             if news_summary is not None:
                 try:
                     total = news_summary.get('total_count', 0)
-                    
+
                     if total > 0:
                         message += "\n\n📰 <b>Crypto News (Last Hour):</b>\n"
-                        
+
                         bullish = news_summary.get('bullish_count', 0)
                         bearish = news_summary.get('bearish_count', 0)
                         neutral = news_summary.get('neutral_count', 0)
-                    
+
                         # News sentiment overview
-                        bullish_pct = (bullish / total) * 100 if total > 0 else 0
-                        bearish_pct = (bearish / total) * 100 if total > 0 else 0
-                        
+                        (bullish / total) * 100 if total > 0 else 0
+                        (bearish / total) * 100 if total > 0 else 0
+
                         # Market sentiment from news
                         if bullish > bearish and bullish > neutral:
                             sentiment_emoji = "🟢"
@@ -944,34 +969,38 @@ class TelegramNotifier:
                         else:
                             sentiment_emoji = "🟡"
                             sentiment_text = "Neutral"
-                        
+
                         message += f"  📊 Sentiment: {sentiment_emoji} <b>{sentiment_text}</b> "
                         message += f"({bullish}↑ {bearish}↓ {neutral}↔️)\n"
-                    
+
                         # Top symbols mentioned in news
                         by_symbol = news_summary.get('by_symbol', {})
                         if by_symbol:
-                            message += f"\n  <b>🔥 Trending Coins:</b>\n"
+                            message += "\n  <b>🔥 Trending Coins:</b>\n"
                             # Sort by count and show top 5
-                            sorted_symbols = sorted(by_symbol.items(), key=lambda x: x[1], reverse=True)[:5]
+                            sorted_symbols = sorted(
+                                by_symbol.items(),
+                                key=lambda x: x[1],
+                                reverse=True)[
+                                :5]
                             for symbol, count in sorted_symbols:
                                 message += f"  • <code>{symbol}</code>: {count} mentions\n"
-                        
+
                         # Latest news items
                         news_items = news_summary.get('news_items', [])
                         if news_items:
-                            message += f"\n  <b>📋 Latest Headlines:</b>\n"
+                            message += "\n  <b>📋 Latest Headlines:</b>\n"
                             for idx, item in enumerate(news_items[:3], 1):  # Show top 3
                                 title = item.get('title', 'No title')
                                 # Truncate long titles
                                 if len(title) > 80:
                                     title = title[:77] + '...'
-                                
+
                                 source = item.get('source', 'Unknown')
                                 # Clean source name
                                 if ':' in source:
                                     source = source.split(':')[1]
-                                
+
                                 # Add link if available
                                 url = item.get('url', '')
                                 if url:
@@ -980,9 +1009,9 @@ class TelegramNotifier:
                                 else:
                                     message += f"  {idx}. {title}\n"
                                     message += f"     <i>Source: {source}</i>\n"
-                        
+
                         # AI News Analysis
-                        message += f"\n  <b>🤖 AI Analysis:</b>\n"
+                        message += "\n  <b>🤖 AI Analysis:</b>\n"
                         if bullish > bearish * 1.5:
                             message += "  💡 Strong bullish news flow - favorable for longs\n"
                         elif bearish > bullish * 1.5:
@@ -996,16 +1025,21 @@ class TelegramNotifier:
                         message += "\n\n📰 <b>Crypto News (Last Hour):</b>\n"
                         message += "  🔇 <i>No significant news in the last hour</i>\n"
                         message += "  💡 Market is quiet - good for technical analysis\n"
-                
+
                 except Exception as e:
                     self.logger.error(f"Error formatting news summary: {e}")
                     message += "\n\n📰 <i>News analysis unavailable</i>\n"
             else:
-                # News aggregator not enabled or error occurred  
+                # News aggregator not enabled or error occurred
                 message += "\n\n📰 <b>Crypto News:</b>\n"
                 # Check if bot has news_error_message attribute
-                if hasattr(self, 'bot_instance') and hasattr(self.bot_instance, 'news_error_message') and self.bot_instance.news_error_message:
-                    message += f"  ⚙️ <i>News analysis disabled: {self.bot_instance.news_error_message}</i>\n"
+                if hasattr(
+                        self,
+                        'bot_instance') and hasattr(
+                        self.bot_instance,
+                        'news_error_message') and self.bot_instance.news_error_message:
+                    message += f"  ⚙️ <i>News analysis disabled: {
+                        self.bot_instance.news_error_message}</i>\n"
                     if 'Missing dependencies' in self.bot_instance.news_error_message:
                         message += "  🔧 <b>FIX:</b> Run: <code>pip install aiohttp feedparser</code>\n"
                     elif 'Disabled in .env' in self.bot_instance.news_error_message:
@@ -1013,11 +1047,11 @@ class TelegramNotifier:
                 else:
                     message += "  ⚙️ <i>News analysis disabled or unavailable</i>\n"
                     message += "  💡 Enable with ENABLE_NEWS_ANALYSIS=true in .env\n"
-            
+
             message += f"\n⏰ Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-            
+
             return self.send_message(message.strip())
-            
+
         except Exception as e:
             self.logger.error(f"Error formatting hourly summary notification: {e}", exc_info=True)
             # Send simplified notification
@@ -1034,14 +1068,14 @@ class TelegramNotifier:
             except Exception as e2:
                 self.logger.error(f"Failed to send even simplified hourly summary: {e2}")
                 return False
-    
+
     def notify_bot_stopped(self, reason: str = "Manual stop") -> bool:
         """
         Notify about bot shutdown
-        
+
         Args:
             reason: Reason for shutdown
-            
+
         Returns:
             True if sent successfully
         """
@@ -1064,17 +1098,17 @@ def get_notifier() -> Optional[TelegramNotifier]:
     return _notifier
 
 
-def init_notifier(bot_token: Optional[str] = None, chat_id: Optional[str] = None, 
-                 enabled: bool = True, language: str = None) -> TelegramNotifier:
+def init_notifier(bot_token: Optional[str] = None, chat_id: Optional[str] = None,
+                  enabled: bool = True, language: str = None) -> TelegramNotifier:
     """
     Initialize global notifier instance
-    
+
     Args:
         bot_token: Telegram bot token
         chat_id: Telegram chat ID
         enabled: Whether notifications are enabled
         language: Notification language code (default: from env or 'en')
-        
+
     Returns:
         TelegramNotifier instance
     """

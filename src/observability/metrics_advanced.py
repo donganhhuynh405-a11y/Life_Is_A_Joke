@@ -80,7 +80,8 @@ def _make_counter(
         return prom.Counter(name, documentation, labelnames or [])
     except ValueError:
         # Metric already registered – retrieve it from the registry
-        return prom.REGISTRY._names_to_collectors.get(name, _NoOpMetric())  # type: ignore[attr-defined]
+        return prom.REGISTRY._names_to_collectors.get(
+            name, _NoOpMetric())  # type: ignore[attr-defined]
 
 
 def _make_gauge(
@@ -95,7 +96,8 @@ def _make_gauge(
     try:
         return prom.Gauge(name, documentation, labelnames or [])
     except ValueError:
-        return prom.REGISTRY._names_to_collectors.get(name, _NoOpMetric())  # type: ignore[attr-defined]
+        return prom.REGISTRY._names_to_collectors.get(
+            name, _NoOpMetric())  # type: ignore[attr-defined]
 
 
 def _make_histogram(
@@ -114,7 +116,8 @@ def _make_histogram(
     try:
         return prom.Histogram(name, documentation, labelnames or [], **kwargs)
     except ValueError:
-        return prom.REGISTRY._names_to_collectors.get(name, _NoOpMetric())  # type: ignore[attr-defined]
+        return prom.REGISTRY._names_to_collectors.get(
+            name, _NoOpMetric())  # type: ignore[attr-defined]
 
 
 def _make_summary(
@@ -129,7 +132,8 @@ def _make_summary(
     try:
         return prom.Summary(name, documentation, labelnames or [])
     except ValueError:
-        return prom.REGISTRY._names_to_collectors.get(name, _NoOpMetric())  # type: ignore[attr-defined]
+        return prom.REGISTRY._names_to_collectors.get(
+            name, _NoOpMetric())  # type: ignore[attr-defined]
 
 
 # ---------------------------------------------------------------------------

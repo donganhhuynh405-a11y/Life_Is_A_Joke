@@ -126,7 +126,7 @@ class ArbitrageDetector:
             }
         )
         if len(self._history) > self.decay_window * 2:
-            self._history = self._history[-self.decay_window :]
+            self._history = self._history[-self.decay_window:]
 
     def rolling_accuracy(self, kind: Optional[str] = None) -> float:
         """
@@ -145,7 +145,7 @@ class ArbitrageDetector:
         records = [r for r in self._history if kind is None or r["kind"] == kind]
         if not records:
             return 0.5  # neutral prior
-        hits = sum(1 for r in records[-self.decay_window :] if r["realised_pct"] > 0)
+        hits = sum(1 for r in records[-self.decay_window:] if r["realised_pct"] > 0)
         return hits / min(len(records), self.decay_window)
 
     # ------------------------------------------------------------------

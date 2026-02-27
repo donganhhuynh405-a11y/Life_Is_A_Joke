@@ -124,7 +124,8 @@ class BlackLitterman:
 
         prior_cov = self.tau * self.cov_matrix  # τΣ
         M = np.linalg.inv(np.linalg.inv(prior_cov) + P.T @ np.linalg.inv(Omega) @ P)
-        self._posterior_returns = M @ (np.linalg.inv(prior_cov) @ self._pi + P.T @ np.linalg.inv(Omega) @ Q)
+        self._posterior_returns = M @ (np.linalg.inv(prior_cov) @
+                                       self._pi + P.T @ np.linalg.inv(Omega) @ Q)
         self._posterior_cov = M + self.cov_matrix  # add back sampling uncertainty
 
         logger.info("Black-Litterman posterior computed with %d views.", n_views)

@@ -8,11 +8,9 @@ from __future__ import annotations
 import json
 import logging
 import logging.handlers
-import os
 import sys
 import threading
 import time
-import traceback
 from typing import Any, Dict, Optional
 
 

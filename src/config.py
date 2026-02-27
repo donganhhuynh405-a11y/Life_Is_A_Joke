@@ -4,6 +4,7 @@ import yaml
 
 class AttrDict(dict):
     """Dictionary that allows attribute access"""
+
     def __init__(self, *args, **kwargs):
         super(AttrDict, self).__init__(*args, **kwargs)
         self.__dict__ = self
@@ -17,15 +18,17 @@ class AttrDict(dict):
 
 _cfg = None
 
+
 def load_config(path=None):
     global _cfg
     if _cfg:
         return _cfg
-    path = path or os.environ.get('CONFIG_PATH') or os.path.join(os.getcwd(),'config.yaml')
-    with open(path,'r',encoding='utf8') as f:
+    path = path or os.environ.get('CONFIG_PATH') or os.path.join(os.getcwd(), 'config.yaml')
+    with open(path, 'r', encoding='utf8') as f:
         data = yaml.safe_load(f)
         _cfg = AttrDict(data)
     return _cfg
+
 
 def get_redis_url():
     cfg = load_config()

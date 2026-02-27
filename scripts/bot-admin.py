@@ -52,7 +52,7 @@ def print_error(message):
 def run_command(cmd, show_output=True, check=True):
     """
     Run shell command and return output.
-    
+
     SECURITY NOTE: This function uses shell=True for convenience with internal
     commands. All user input passed to this function MUST be sanitized first.
     """
@@ -73,7 +73,7 @@ def find_bot_process():
     """Find bot process by name"""
     try:
         result = subprocess.run(
-            ['pgrep', '-f', 'python.*main.py|python.*telegram_bot.py'],
+            ['pgrep', '-', 'python.*main.py|python.*telegram_bot.py'],
             capture_output=True, text=True, check=False
         )
         return result.stdout.strip() if result.stdout.strip() else None
@@ -92,17 +92,17 @@ def get_bot_status():
 def start_bot():
     """Start the trading bot"""
     print_info("Starting trading bot...")
-    
+
     is_running, pid = get_bot_status()
     if is_running:
         print_warning(f"Bot is already running (PID: {pid})")
         return
-    
+
     # Check which bot file exists
     project_root = Path(__file__).parent.parent
     main_py = project_root / "src" / "main.py"
     telegram_py = project_root / "telegram_bot.py"
-    
+
     if main_py.exists():
         cmd = f"cd {project_root} && nohup python3 src/main.py > logs/bot.log 2>&1 &"
     elif telegram_py.exists():
@@ -110,11 +110,11 @@ def start_bot():
     else:
         print_error("Bot main file not found!")
         return
-    
+
     # Create logs directory if it doesn't exist
     logs_dir = project_root / "logs"
     logs_dir.mkdir(exist_ok=True)
-    
+
     if run_command(cmd):
         time.sleep(2)
         is_running, pid = get_bot_status()
@@ -129,24 +129,24 @@ def start_bot():
 def stop_bot():
     """Stop the trading bot"""
     print_info("Stopping trading bot...")
-    
+
     is_running, pid = get_bot_status()
     if not is_running:
         print_warning("Bot is not running")
         return
-    
+
     # Send SIGTERM for graceful shutdown
     try:
         os.kill(int(pid), signal.SIGTERM)
         time.sleep(2)
-        
+
         # Check if still running
         is_running, _ = get_bot_status()
         if is_running:
             print_warning("Bot didn't stop gracefully, sending SIGKILL...")
             os.kill(int(pid), signal.SIGKILL)
             time.sleep(1)
-        
+
         print_success("Bot stopped successfully")
     except Exception as e:
         print_error(f"Failed to stop bot: {e}")
@@ -164,10 +164,10 @@ def bot_status():
     """Show bot status"""
     print_info("Checking bot status...")
     is_running, pid = get_bot_status()
-    
+
     if is_running:
         print_success(f"Bot is running (PID: {pid})")
-        
+
         # Get additional info
         try:
             import psutil
@@ -175,7 +175,7 @@ def bot_status():
             cpu = p.cpu_percent(interval=1)
             mem = p.memory_info().rss / 1024 / 1024
             uptime = datetime.now() - datetime.fromtimestamp(p.create_time())
-            
+
             print(f"  CPU: {cpu:.1f}%")
             print(f"  Memory: {mem:.1f} MB")
             print(f"  Uptime: {uptime}")
@@ -202,28 +202,28 @@ def disable_bot():
 def update_bot():
     """Update bot from git repository"""
     print_info("Updating bot from repository...")
-    
+
     project_root = Path(__file__).parent.parent
-    
+
     # Check if git repo
     if not (project_root / ".git").exists():
         print_error("Not a git repository!")
         return
-    
+
     # Stash local changes
     print_info("Stashing local changes...")
     run_command(f"cd {project_root} && git stash")
-    
+
     # Pull latest
     print_info("Pulling latest changes...")
     if run_command(f"cd {project_root} && git pull"):
         print_success("Repository updated")
-        
+
         # Update dependencies
         print_info("Installing dependencies...")
         if run_command(f"cd {project_root} && pip3 install -q -r requirements.txt"):
             print_success("Dependencies updated")
-            
+
             # Restart bot
             print_info("Restarting bot...")
             restart_bot()
@@ -237,27 +237,27 @@ def change_git_source():
     """Change git repository source"""
     print_info("Change Git Repository Source")
     print()
-    
+
     current_remote = run_command("git remote get-url origin", show_output=False)
     if current_remote:
         print(f"Current remote: {Colors.CYAN}{current_remote}{Colors.NC}")
-    
+
     print()
     new_url = input("Enter new repository URL (or press Enter to cancel): ").strip()
-    
+
     if not new_url:
         print_warning("Operation cancelled")
         return
-    
+
     # Basic URL validation
     if not (new_url.startswith('https://') or new_url.startswith('git@')):
         print_error("Invalid URL format. Must start with https:// or git@")
         return
-    
+
     # Use subprocess with list arguments for safety
     try:
-        result = subprocess.run(['git', 'remote', 'set-url', 'origin', new_url], 
-                              capture_output=True, text=True, check=True)
+        subprocess.run(['git', 'remote', 'set-url', 'origin', new_url],
+                       capture_output=True, text=True, check=True)
         print_success("Repository URL updated")
         new_remote = run_command("git remote get-url origin", show_output=False)
         print(f"New remote: {Colors.CYAN}{new_remote}{Colors.NC}")
@@ -269,13 +269,13 @@ def view_logs(live=False, lines=50, search=None):
     """View bot logs"""
     project_root = Path(__file__).parent.parent
     log_file = project_root / "logs" / "bot.log"
-    
+
     if not log_file.exists():
         print_error("Log file not found!")
         return
-    
+
     if live:
-        print_info(f"Viewing live logs (Ctrl+C to stop)...")
+        print_info("Viewing live logs (Ctrl+C to stop)...")
         print("=" * 80)
         run_command(f"tail -f {log_file}")
     elif search:
@@ -294,23 +294,27 @@ def quick_diagnostics():
     """Run quick diagnostics"""
     print_info("Running quick diagnostics...")
     print("=" * 80)
-    
+
     # Bot status
     print(f"\n{Colors.BOLD}Bot Status:{Colors.NC}")
     is_running, pid = get_bot_status()
-    status = f"{Colors.GREEN}Running{Colors.NC}" if is_running else f"{Colors.RED}Stopped{Colors.NC}"
+    status = f"{
+        Colors.GREEN}Running{
+        Colors.NC}" if is_running else f"{
+            Colors.RED}Stopped{
+                Colors.NC}"
     print(f"  Status: {status}")
     if pid:
         print(f"  PID: {pid}")
-    
+
     # Disk space
     print(f"\n{Colors.BOLD}Disk Space:{Colors.NC}")
     run_command("df -h / | tail -1")
-    
+
     # Memory
     print(f"\n{Colors.BOLD}Memory:{Colors.NC}")
     run_command("free -h | grep Mem")
-    
+
     # Recent errors in log
     print(f"\n{Colors.BOLD}Recent Errors:{Colors.NC}")
     project_root = Path(__file__).parent.parent
@@ -324,14 +328,14 @@ def quick_diagnostics():
 def edit_config():
     """Edit configuration file"""
     print_info("Opening configuration editor...")
-    
+
     project_root = Path(__file__).parent.parent
     config_file = project_root / "config.yaml"
-    
+
     if not config_file.exists():
         print_error("Configuration file not found!")
         return
-    
+
     editor = os.environ.get('EDITOR', 'nano')
     run_command(f"{editor} {config_file}")
 
@@ -340,19 +344,23 @@ def interactive_menu():
     """Display interactive menu"""
     while True:
         os.system('clear' if os.name != 'nt' else 'cls')
-        
+
         print(f"{Colors.BOLD}{Colors.CYAN}{'=' * 70}{Colors.NC}")
         print(f"{Colors.BOLD}{Colors.CYAN}{'Trading Bot - Administration Tool':^70}{Colors.NC}")
         print(f"{Colors.BOLD}{Colors.CYAN}{'=' * 70}{Colors.NC}")
-        
+
         # Show current status
         is_running, pid = get_bot_status()
-        status = f"{Colors.GREEN}RUNNING{Colors.NC}" if is_running else f"{Colors.RED}STOPPED{Colors.NC}"
+        status = f"{
+            Colors.GREEN}RUNNING{
+            Colors.NC}" if is_running else f"{
+            Colors.RED}STOPPED{
+                Colors.NC}"
         print(f"\nCurrent Status: {status}")
         if pid:
             print(f"Process ID: {pid}")
         print()
-        
+
         print(f"{Colors.BOLD}Bot Management:{Colors.NC}")
         print(f"  {Colors.GREEN}1{Colors.NC}. Start bot")
         print(f"  {Colors.YELLOW}2{Colors.NC}. Stop bot")
@@ -360,23 +368,23 @@ def interactive_menu():
         print(f"  {Colors.BLUE}4{Colors.NC}. Bot status")
         print(f"  {Colors.MAGENTA}5{Colors.NC}. Enable autostart")
         print(f"  {Colors.MAGENTA}6{Colors.NC}. Disable autostart")
-        
+
         print(f"\n{Colors.BOLD}Updates & Configuration:{Colors.NC}")
         print(f"  {Colors.GREEN}7{Colors.NC}. Update bot (git pull & restart)")
         print(f"  {Colors.CYAN}8{Colors.NC}. Change git repository")
         print(f"  {Colors.BLUE}9{Colors.NC}. Edit configuration")
-        
+
         print(f"\n{Colors.BOLD}Logs & Diagnostics:{Colors.NC}")
         print(f"  {Colors.GREEN}10{Colors.NC}. View live logs")
         print(f"  {Colors.CYAN}11{Colors.NC}. View last N lines")
         print(f"  {Colors.BLUE}12{Colors.NC}. Search logs")
         print(f"  {Colors.MAGENTA}13{Colors.NC}. Quick diagnostics")
-        
+
         print(f"\n  {Colors.RED}0{Colors.NC}. Exit")
         print()
-        
+
         choice = input(f"{Colors.BOLD}Select option: {Colors.NC}").strip()
-        
+
         if choice == '1':
             start_bot()
             input("\nPress Enter to continue...")
@@ -446,7 +454,7 @@ Examples:
   %(prog)s --logs --search ERROR  # Search logs
         """
     )
-    
+
     parser.add_argument('--start', action='store_true', help='Start the bot')
     parser.add_argument('--stop', action='store_true', help='Stop the bot')
     parser.add_argument('--restart', action='store_true', help='Restart the bot')
@@ -460,14 +468,14 @@ Examples:
     parser.add_argument('--search', type=str, help='Search term in logs')
     parser.add_argument('--diagnostics', action='store_true', help='Run quick diagnostics')
     parser.add_argument('--config', action='store_true', help='Edit configuration')
-    
+
     args = parser.parse_args()
-    
+
     # If no arguments, show interactive menu
     if len(sys.argv) == 1:
         interactive_menu()
         return
-    
+
     # Execute commands
     if args.start:
         start_bot()

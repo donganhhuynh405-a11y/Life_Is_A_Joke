@@ -29,9 +29,10 @@ class TelegramNotifier:
         self.bot_token = bot_token if bot_token else os.environ.get('TELEGRAM_BOT_TOKEN')
         self.chat_id = chat_id if chat_id else os.environ.get('TELEGRAM_CHAT_ID')
         self.base_url = f"https://api.telegram.org/bot{self.bot_token}" if self.bot_token else None
-        
+
         if not self.bot_token or not self.chat_id:
-            logger.warning("Telegram notifier not configured. Set TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID environment variables.")
+            logger.warning(
+                "Telegram notifier not configured. Set TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID environment variables.")
             self.enabled = False
         else:
             self.enabled = True
@@ -59,13 +60,13 @@ class TelegramNotifier:
                 'text': message,
                 'parse_mode': parse_mode
             }
-            
+
             response = requests.post(url, json=payload, timeout=10, verify=True)
             response.raise_for_status()
-            
+
             logger.debug("Telegram message sent successfully")
             return True
-            
+
         except requests.exceptions.RequestException as e:
             logger.error(f"Failed to send Telegram message: {str(e)}")
             return False
@@ -73,7 +74,8 @@ class TelegramNotifier:
             logger.error(f"Unexpected error sending Telegram message: {str(e)}")
             return False
 
-    def send_error_notification(self, operation: str, error: Exception, context: Optional[dict] = None) -> bool:
+    def send_error_notification(self, operation: str, error: Exception,
+                                context: Optional[dict] = None) -> bool:
         """
         Send an error notification with details.
 
@@ -90,7 +92,7 @@ class TelegramNotifier:
 
         error_type = type(error).__name__
         error_message = str(error)
-        
+
         # Build notification message
         message_lines = [
             "🚨 <b>Ошибка операции</b> 🚨",
@@ -99,16 +101,16 @@ class TelegramNotifier:
             f"<b>Тип ошибки:</b> {error_type}",
             f"<b>Причина:</b> {error_message}",
         ]
-        
+
         # Add context if provided
         if context:
             message_lines.append("")
             message_lines.append("<b>Дополнительная информация:</b>")
             for key, value in context.items():
                 message_lines.append(f"  • {key}: {value}")
-        
+
         message = "\n".join(message_lines)
-        
+
         return self.send_message(message)
 
     def send_success_notification(self, operation: str, details: Optional[dict] = None) -> bool:
@@ -130,15 +132,15 @@ class TelegramNotifier:
             "",
             f"<b>Операция:</b> {operation}",
         ]
-        
+
         if details:
             message_lines.append("")
             message_lines.append("<b>Детали:</b>")
             for key, value in details.items():
                 message_lines.append(f"  • {key}: {value}")
-        
+
         message = "\n".join(message_lines)
-        
+
         return self.send_message(message)
 
 
@@ -159,7 +161,10 @@ def get_notifier() -> TelegramNotifier:
     return _notifier_instance
 
 
-def send_error_notification(operation: str, error: Exception, context: Optional[dict] = None) -> bool:
+def send_error_notification(
+        operation: str,
+        error: Exception,
+        context: Optional[dict] = None) -> bool:
     """
     Convenience function to send error notification using the global notifier.
 

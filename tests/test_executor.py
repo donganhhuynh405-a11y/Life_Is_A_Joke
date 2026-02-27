@@ -37,7 +37,7 @@ def mock_exchange():
     ex = MagicMock()
     ex.fetch_balance = AsyncMock(return_value={
         'total': {'BTC': 0.0, 'USDT': 1000.0},
-        'free':  {'BTC': 0.0, 'USDT': 1000.0},
+        'free': {'BTC': 0.0, 'USDT': 1000.0},
     })
     ex.fetch_ticker = AsyncMock(return_value={
         'bid': 49900.0, 'ask': 50100.0, 'last': 50000.0,

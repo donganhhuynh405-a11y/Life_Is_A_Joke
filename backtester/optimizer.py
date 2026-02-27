@@ -6,7 +6,7 @@ import itertools
 import logging
 import time
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -174,12 +174,6 @@ class StrategyOptimizer:
 
     def _grid_search(self) -> List[OptimisationResult]:
         keys = list(self.param_space.keys())
-        values = [
-            v if isinstance(v, (list, tuple)) and not isinstance(v[0], (int, float))
-            or isinstance(v, list)
-            else v
-            for v in self.param_space.values()
-        ]
         # Normalise: if a value is a 2-tuple of numbers, treat as range for grid
         grid_values = []
         for v in self.param_space.values():

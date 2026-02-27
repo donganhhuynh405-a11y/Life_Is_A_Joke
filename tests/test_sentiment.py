@@ -1,15 +1,13 @@
 """
 Tests for SentimentAnalyzer.
 """
+from sentiment import SentimentAnalyzer
 import sys
 import os
 import pytest
-import asyncio
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
-
-from sentiment import SentimentAnalyzer
 
 
 @pytest.fixture

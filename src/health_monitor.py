@@ -4,6 +4,7 @@ from prometheus_client import start_http_server, Gauge
 
 logger = logging.getLogger('bot.health')
 
+
 class HealthMonitor:
     def __init__(self, cfg):
         self.cfg = cfg

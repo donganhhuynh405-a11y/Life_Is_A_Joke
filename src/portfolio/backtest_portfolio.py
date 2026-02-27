@@ -94,7 +94,8 @@ class PortfolioBacktester:
 
     def _sortino(self, returns: np.ndarray, ann_ret: float) -> float:
         downside = returns[returns < 0]
-        down_vol = float(downside.std() * np.sqrt(self.periods_per_year)) if len(downside) > 0 else 0.0
+        down_vol = float(downside.std() * np.sqrt(self.periods_per_year)
+                         ) if len(downside) > 0 else 0.0
         return (ann_ret - self.risk_free_rate) / down_vol if down_vol > 0 else 0.0
 
     # ------------------------------------------------------------------
@@ -135,7 +136,8 @@ class PortfolioBacktester:
             current_prices = prices[t]
             port_val = (holdings * current_prices).sum()
             portfolio_values[t] = port_val
-            cur_weights = (holdings * current_prices) / port_val if port_val > 0 else np.zeros(n_assets)
+            cur_weights = (holdings * current_prices) / \
+                port_val if port_val > 0 else np.zeros(n_assets)
             weights_history[t] = cur_weights
 
             # Rebalance
@@ -151,7 +153,8 @@ class PortfolioBacktester:
                 total_cost += cost
                 port_val_after_cost = port_val - cost
 
-                holdings = (port_val_after_cost * new_weights) / np.where(current_prices > 0, current_prices, 1)
+                holdings = (port_val_after_cost * new_weights) / \
+                    np.where(current_prices > 0, current_prices, 1)
                 rebalance_dates.append(t)
 
         # Performance metrics
@@ -213,6 +216,7 @@ class PortfolioBacktester:
         alpha = float(port_ret.mean() - beta * bench_ret.mean()) * self.periods_per_year
 
         active_ret = port_ret - bench_ret
-        info_ratio = float(active_ret.mean() / active_ret.std()) * np.sqrt(self.periods_per_year) if active_ret.std() > 0 else 0.0
+        info_ratio = float(active_ret.mean() / active_ret.std()) * \
+            np.sqrt(self.periods_per_year) if active_ret.std() > 0 else 0.0
 
         return {"alpha": alpha, "beta": beta, "information_ratio": info_ratio}

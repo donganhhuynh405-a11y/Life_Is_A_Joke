@@ -75,7 +75,8 @@ class SHAPExplainer:
                 GradientBoostingRegressor,
             )
 
-            types.extend([RandomForestClassifier, RandomForestRegressor, GradientBoostingClassifier, GradientBoostingRegressor])
+            types.extend([RandomForestClassifier, RandomForestRegressor,
+                         GradientBoostingClassifier, GradientBoostingRegressor])
         except ImportError:
             pass
         try:
@@ -165,7 +166,7 @@ class SHAPExplainer:
             raise
         if self._explainer is None:
             self._build_explainer()
-        explanation = self._explainer(X[sample_idx : sample_idx + 1])
+        explanation = self._explainer(X[sample_idx: sample_idx + 1])
         shap.plots.waterfall(explanation[0])
 
 

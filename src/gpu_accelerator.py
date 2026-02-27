@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 
@@ -197,7 +197,7 @@ class GPUBatchInference:
 
             with torch.no_grad():
                 for start in range(0, len(inputs), self.chunk_size):
-                    chunk = inputs[start : start + self.chunk_size]
+                    chunk = inputs[start: start + self.chunk_size]
                     tensor = to_tensor(chunk, device=self.device)
 
                     if self.mixed_precision and self.device != "cpu":

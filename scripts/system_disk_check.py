@@ -7,13 +7,12 @@ Finds what's really using disk space across the entire system
 import os
 import subprocess
 import sys
-from pathlib import Path
 
 
 def get_disk_usage():
     """Get overall disk usage"""
     try:
-        result = subprocess.run(['df', '-h', '/'], capture_output=True, text=True)
+        result = subprocess.run(['d', '-h', '/'], capture_output=True, text=True)
         lines = result.stdout.strip().split('\n')
         if len(lines) > 1:
             parts = lines[1].split()
@@ -57,22 +56,22 @@ def format_size(bytes_size):
 
 def scan_system_directories():
     """Scan critical system directories"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("📊 SYSTEM DISK ANALYSIS")
-    print("="*60)
-    
+    print("=" * 60)
+
     # Get overall disk usage
     disk_info = get_disk_usage()
     if disk_info:
-        print(f"\n💾 Overall Disk Usage:")
+        print("\n💾 Overall Disk Usage:")
         print(f"   Total: {disk_info['total']}")
         print(f"   Used: {disk_info['used']} ({disk_info['percent']})")
         print(f"   Available: {disk_info['available']}")
-    
-    print("\n" + "─"*60)
+
+    print("\n" + "─" * 60)
     print("📁 TOP SYSTEM DIRECTORIES:")
-    print("─"*60)
-    
+    print("─" * 60)
+
     # Directories to check
     check_dirs = [
         '/var/log',
@@ -86,9 +85,9 @@ def scan_system_directories():
         '/usr/share',
         '/var/lib/apt',
     ]
-    
+
     dir_sizes = []
-    
+
     print("\n🔍 Scanning system directories...")
     for directory in check_dirs:
         if os.path.exists(directory) and os.path.isdir(directory):
@@ -102,26 +101,26 @@ def scan_system_directories():
                     print(" (empty or no access)")
             except Exception as e:
                 print(f" (error: {e})")
-    
+
     # Sort by size
     dir_sizes.sort(key=lambda x: x[1], reverse=True)
-    
+
     print("\n📊 Results (sorted by size):")
     print()
     for i, (directory, size) in enumerate(dir_sizes[:15], 1):
         print(f"{i:2d}. {format_size(size)} - {directory}")
-    
+
     # Recommendations
-    print("\n" + "─"*60)
+    print("\n" + "─" * 60)
     print("💡 RECOMMENDATIONS:")
-    print("─"*60)
+    print("─" * 60)
     print()
-    
+
     recommendations = []
-    
+
     for directory, size in dir_sizes:
         size_gb = size / (1024**3)
-        
+
         if '/var/log' in directory and size_gb > 1:
             recommendations.append({
                 'priority': 1,
@@ -135,7 +134,7 @@ def scan_system_directories():
                     "  sudo find /var/log -name '*.old' -delete"
                 ]
             })
-        
+
         if '/var/lib/docker' in directory and size_gb > 1:
             recommendations.append({
                 'priority': 1,
@@ -147,7 +146,7 @@ def scan_system_directories():
                     "  docker system prune -af --volumes"
                 ]
             })
-        
+
         if '/var/cache' in directory and size_gb > 0.5:
             recommendations.append({
                 'priority': 2,
@@ -160,7 +159,7 @@ def scan_system_directories():
                     "  sudo apt autoremove -y"
                 ]
             })
-        
+
         if directory in ['/tmp', '/var/tmp'] and size_gb > 0.5:
             recommendations.append({
                 'priority': 2,
@@ -168,29 +167,29 @@ def scan_system_directories():
                 'size': size,
                 'msg': f"🟡 {directory} is using {format_size(size)}",
                 'cmd': [
-                    f"Clean temporary files:",
+                    "Clean temporary files:",
                     f"  sudo rm -rf {directory}/*"
                 ]
             })
-    
+
     # Sort by priority
     recommendations.sort(key=lambda x: (x['priority'], -x['size']))
-    
+
     if recommendations:
         for i, rec in enumerate(recommendations, 1):
             print(f"{i}. {rec['msg']}")
             for cmd in rec['cmd']:
                 print(f"   {cmd}")
             print()
-        
+
         total_potential = sum(r['size'] for r in recommendations)
         print(f"💾 Potential space to free: {format_size(total_potential)}")
     else:
         print("✓ No major issues found")
-    
-    print("\n" + "="*60)
+
+    print("\n" + "=" * 60)
     print("✅ Analysis complete!")
-    print("="*60)
+    print("=" * 60)
     print()
 
 
@@ -201,7 +200,7 @@ def main():
         print("   Some directories may not be accessible.")
         print("   Run with 'sudo' for complete analysis.")
         print()
-    
+
     try:
         scan_system_directories()
     except KeyboardInterrupt:

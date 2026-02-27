@@ -14,7 +14,7 @@ import asyncio
 import json
 import logging
 from datetime import datetime
-from typing import Any, Dict, Optional, Set
+from typing import Any, Dict, Set
 
 try:
     from fastapi import APIRouter, WebSocket, WebSocketDisconnect

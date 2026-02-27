@@ -88,6 +88,11 @@ def mock_exchange():
             'limits': {'amount': {'min': 0.000001}},
         }
     }
-    exchange.create_order = AsyncMock(return_value={'id': 'order123', 'price': 50000.0, 'amount': 0.001, 'side': 'buy'})
+    exchange.create_order = AsyncMock(
+        return_value={
+            'id': 'order123',
+            'price': 50000.0,
+            'amount': 0.001,
+            'side': 'buy'})
     exchange.close = AsyncMock()
     return exchange

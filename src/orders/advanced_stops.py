@@ -285,10 +285,9 @@ class VolatilityStop:
 
     def _compute_atr(self) -> float:
         """Compute the Average True Range over the look-back period."""
-        highs = np.array(self._highs[-self.atr_period :])
-        lows = np.array(self._lows[-self.atr_period :])
-        closes = np.array(self._prices[-self.atr_period :])
-        prev_closes = np.array(self._prices[-(self.atr_period + 1) : -1])
+        highs = np.array(self._highs[-self.atr_period:])
+        lows = np.array(self._lows[-self.atr_period:])
+        prev_closes = np.array(self._prices[-(self.atr_period + 1): -1])
 
         if len(prev_closes) == 0:
             return highs[-1] - lows[-1]

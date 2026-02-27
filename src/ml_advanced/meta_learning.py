@@ -87,11 +87,16 @@ class MAMLAdapter:
         for step in range(self.inner_steps):
             preds = adapted(X_t)
             loss = loss_fn(preds, y_t)
-            grads = torch.autograd.grad(loss, adapted.parameters(), create_graph=not self.first_order)
+            grads = torch.autograd.grad(
+                loss, adapted.parameters(), create_graph=not self.first_order)
             with torch.no_grad():
                 for param, grad in zip(adapted.parameters(), grads):
                     param -= self.inner_lr * grad
-            logger.debug("MAML inner step %d/%d – loss: %.6f", step + 1, self.inner_steps, loss.item())
+            logger.debug(
+                "MAML inner step %d/%d – loss: %.6f",
+                step + 1,
+                self.inner_steps,
+                loss.item())
 
         return adapted
 
@@ -254,7 +259,11 @@ class RegimeDetector:
     regime for adaptive strategy switching.
     """
 
-    def __init__(self, n_regimes: int = 4, covariance_type: str = "full", random_state: int = 42) -> None:
+    def __init__(
+            self,
+            n_regimes: int = 4,
+            covariance_type: str = "full",
+            random_state: int = 42) -> None:
         """Initialise the regime detector.
 
         Args:

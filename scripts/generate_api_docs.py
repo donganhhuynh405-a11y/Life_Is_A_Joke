@@ -82,7 +82,7 @@ def schema_to_markdown(schema: dict) -> str:
         for method in methods:
             if method in ("get", "post", "put", "delete", "patch"):
                 op = methods[method]
-                tag = (op.get("tags") or ["General"])[0]
+                (op.get("tags") or ["General"])[0]
                 summary = op.get("summary", path)
                 anchor = f"#{method}-{path.replace('/', '-').strip('-')}"
                 lines.append(f"- [{method.upper()} {path} - {summary}]({anchor})")

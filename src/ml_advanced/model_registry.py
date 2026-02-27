@@ -269,7 +269,8 @@ class ModelRegistry:
         self._save_registry()
         logger.info("Deleted model '%s' version '%s'.", name, version)
 
-    def search(self, tag: Optional[str] = None, name_prefix: Optional[str] = None) -> List[Dict[str, Any]]:
+    def search(self, tag: Optional[str] = None,
+               name_prefix: Optional[str] = None) -> List[Dict[str, Any]]:
         """Search the registry by tag or name prefix.
 
         Args:

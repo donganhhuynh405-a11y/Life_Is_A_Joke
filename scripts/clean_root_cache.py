@@ -8,7 +8,6 @@ import os
 import sys
 import subprocess
 import shutil
-from pathlib import Path
 
 
 def get_dir_size(path):
@@ -41,19 +40,19 @@ def clean_cache_directory(cache_dir, dry_run=False):
     if not os.path.exists(cache_dir):
         print(f"  ⚠️  {cache_dir} does not exist")
         return 0
-    
+
     size_before = get_dir_size(cache_dir)
-    
+
     if size_before == 0:
         print(f"  ℹ️  {cache_dir} is already empty")
         return 0
-    
+
     print(f"  📂 {cache_dir}: {format_size(size_before)}")
-    
+
     if dry_run:
         print(f"     [DRY RUN] Would delete {format_size(size_before)}")
         return size_before
-    
+
     try:
         # Remove all contents but keep the directory
         for item in os.listdir(cache_dir):
@@ -65,12 +64,12 @@ def clean_cache_directory(cache_dir, dry_run=False):
                     shutil.rmtree(item_path)
             except Exception as e:
                 print(f"     ⚠️  Could not delete {item}: {e}")
-        
+
         size_after = get_dir_size(cache_dir)
         freed = size_before - size_after
         print(f"     ✅ Freed {format_size(freed)}")
         return freed
-    
+
     except Exception as e:
         print(f"     ❌ Error cleaning {cache_dir}: {e}")
         return 0
@@ -82,12 +81,12 @@ def main():
     print("🧹 ROOT CACHE CLEANUP")
     print("=" * 60)
     print()
-    
+
     # Check if running as root
     if os.geteuid() != 0:
         print("⚠️  This script should be run with sudo for full access")
         print()
-    
+
     # Define cache directories to clean
     cache_dirs = [
         "/root/.cache",
@@ -95,57 +94,57 @@ def main():
         "/root/.pip",
         "/root/.local/share/Trash",
     ]
-    
+
     # Check for dry run
     dry_run = '--dry-run' in sys.argv
     auto_confirm = '--yes' in sys.argv or '-y' in sys.argv
-    
+
     if dry_run:
         print("🔍 DRY RUN MODE - No files will be deleted")
         print()
-    
+
     # Analyze what will be cleaned
     print("📊 Analysis:")
     print()
     total_to_free = 0
-    
+
     for cache_dir in cache_dirs:
         if os.path.exists(cache_dir):
             size = get_dir_size(cache_dir)
             if size > 0:
                 print(f"  📂 {cache_dir}: {format_size(size)}")
                 total_to_free += size
-    
+
     print()
     print(f"💾 Total space to free: {format_size(total_to_free)}")
     print()
-    
+
     if total_to_free == 0:
         print("✅ Nothing to clean!")
         return 0
-    
+
     # Ask for confirmation
     if not dry_run and not auto_confirm:
         response = input("Proceed with cleanup? (yes/no): ").strip().lower()
         if response not in ['yes', 'y']:
             print("❌ Cleanup cancelled")
             return 1
-    
+
     # Clean caches
     print()
     print("🧹 Cleaning caches...")
     print()
-    
+
     total_freed = 0
     for cache_dir in cache_dirs:
         freed = clean_cache_directory(cache_dir, dry_run)
         total_freed += freed
-    
+
     # Additional cleanup
     print()
     print("🧹 Additional cleanup...")
     print()
-    
+
     # Clean pip cache using pip command
     if not dry_run and shutil.which('pip'):
         print("  🐍 Cleaning pip cache...")
@@ -159,7 +158,7 @@ def main():
             print("     ✅ Pip cache purged")
         except Exception:
             print("     ⚠️  Could not purge pip cache")
-    
+
     # Clean npm cache using npm command
     if not dry_run and shutil.which('npm'):
         print("  📦 Cleaning npm cache...")
@@ -173,7 +172,7 @@ def main():
             print("     ✅ NPM cache cleaned")
         except Exception:
             print("     ⚠️  Could not clean npm cache")
-    
+
     # Find and remove core dumps
     print("  💾 Removing core dumps...")
     try:
@@ -184,7 +183,7 @@ def main():
             check=False
         )
         core_files = result.stdout.strip().split('\n') if result.stdout.strip() else []
-        
+
         if core_files and core_files[0]:
             for core_file in core_files:
                 if os.path.exists(core_file):
@@ -197,14 +196,14 @@ def main():
             print("     ℹ️  No core dumps found")
     except Exception as e:
         print(f"     ⚠️  Could not remove core dumps: {e}")
-    
+
     # Summary
     print()
     print("=" * 60)
     print("📊 CLEANUP SUMMARY")
     print("=" * 60)
     print()
-    
+
     if dry_run:
         print(f"💾 Would free: {format_size(total_freed)}")
         print()
@@ -218,12 +217,12 @@ def main():
         print("  • Remove old venv: sudo rm -rf /root/venv (if not in use)")
         print("  • Remove old installations: sudo rm -rf /root/trading-bot-setup")
         print("  • Clean systemd journal: sudo journalctl --vacuum-size=100M")
-    
+
     print()
     print("=" * 60)
     print("✅ Cleanup complete!")
     print("=" * 60)
-    
+
     return 0
 
 

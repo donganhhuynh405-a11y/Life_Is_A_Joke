@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 import numpy as np
 
@@ -167,7 +167,10 @@ class SlippageModel:
                 observed_bps.append(abs(actual - mid) / mid * 10_000)
         if observed_bps:
             self.fixed_bps = float(np.mean(observed_bps))
-            logger.info("Calibrated fixed_bps to %.2f from %d fills.", self.fixed_bps, len(historical_fills))
+            logger.info(
+                "Calibrated fixed_bps to %.2f from %d fills.",
+                self.fixed_bps,
+                len(historical_fills))
 
     # ------------------------------------------------------------------
     # Private helpers

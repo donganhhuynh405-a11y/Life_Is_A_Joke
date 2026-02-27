@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List
 
 import numpy as np
 import pandas as pd
@@ -128,8 +128,8 @@ class WalkForwardAnalyzer:
         """
         folds = self.generate_folds(len(data))
         for fold in folds:
-            train_data = data.iloc[fold.train_start : fold.train_end]
-            test_data = data.iloc[fold.test_start : fold.test_end]
+            train_data = data.iloc[fold.train_start: fold.train_end]
+            test_data = data.iloc[fold.test_start: fold.test_end]
 
             # --- In-sample optimisation ---
             best_score = -np.inf

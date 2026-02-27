@@ -5,9 +5,8 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
-import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +84,7 @@ class CrossExchangeArbitrage:
         exchanges = list(ticker_data.keys())
 
         for i, ex_buy in enumerate(exchanges):
-            for ex_sell in exchanges[i + 1 :]:
+            for ex_sell in exchanges[i + 1:]:
                 for symbol in ticker_data[ex_buy]:
                     if symbol not in ticker_data[ex_sell]:
                         continue

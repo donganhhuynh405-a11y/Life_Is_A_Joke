@@ -4,7 +4,6 @@ TensorFlow is mocked so tests run without GPU/heavy dependencies.
 """
 import sys
 import os
-import types
 import pytest
 import numpy as np
 from unittest.mock import MagicMock, patch

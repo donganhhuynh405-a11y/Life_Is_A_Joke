@@ -10,7 +10,7 @@ from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 from scipy import stats
-from scipy.cluster.hierarchy import dendrogram, fcluster, linkage
+from scipy.cluster.hierarchy import fcluster, linkage
 
 logger = logging.getLogger(__name__)
 
@@ -106,8 +106,8 @@ class CorrelationAnalyzer:
         n = len(a)
         result = np.full(n, np.nan)
         for i in range(window - 1, n):
-            slice_a = a[i - window + 1 : i + 1]
-            slice_b = b[i - window + 1 : i + 1]
+            slice_a = a[i - window + 1: i + 1]
+            slice_b = b[i - window + 1: i + 1]
             if np.std(slice_a) > 0 and np.std(slice_b) > 0:
                 result[i] = np.corrcoef(slice_a, slice_b)[0, 1]
         return result

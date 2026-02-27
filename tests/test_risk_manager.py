@@ -1,6 +1,7 @@
 """
 Tests for RiskManager.
 """
+from risk_manager import RiskManager
 import sys
 import os
 import types
@@ -16,8 +17,6 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 _utils_stub = types.ModuleType('utils')
 _utils_stub.WALLogger = MagicMock
 sys.modules.setdefault('utils', _utils_stub)
-
-from risk_manager import RiskManager
 
 
 @pytest.fixture(autouse=True)

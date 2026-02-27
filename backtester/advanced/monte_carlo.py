@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -158,7 +158,7 @@ class MonteCarloSimulator:
         shock_per_period = (1 + shock_pct) ** (1 / shock_duration) - 1
         for path in paths:
             start = self.rng.integers(0, max(1, self.n_periods - shock_duration))
-            path[start : start + shock_duration] += shock_per_period
+            path[start: start + shock_duration] += shock_per_period
 
         terminal_returns = (1 + paths).prod(axis=1) - 1
         drawdowns = self._max_drawdowns(paths)
@@ -185,7 +185,9 @@ class MonteCarloSimulator:
     def _generate_paths(self, returns_arr: np.ndarray) -> np.ndarray:
         """Generate simulation paths, shape (n_simulations, n_periods)."""
         if self.mode == "bootstrap":
-            indices = self.rng.integers(0, len(returns_arr), size=(self.n_simulations, self.n_periods))
+            indices = self.rng.integers(
+                0, len(returns_arr), size=(
+                    self.n_simulations, self.n_periods))
             return returns_arr[indices]
         # Parametric
         mu = returns_arr.mean()

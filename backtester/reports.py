@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import asdict, dataclass, field
-from typing import Any, Dict, List, Optional
+from dataclasses import asdict, dataclass
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -102,7 +102,8 @@ class BacktestReporter:
             win_rate = len(wins) / n_trades if n_trades else 0.0
             avg_win = float(wins.mean()) if len(wins) else 0.0
             avg_loss = float(losses.mean()) if len(losses) else 0.0
-            profit_factor = float(wins.sum() / abs(losses.sum())) if losses.sum() != 0 else float("inf")
+            profit_factor = float(wins.sum() / abs(losses.sum())
+                                  ) if losses.sum() != 0 else float("inf")
             expectancy = float(trades["pnl"].mean())
         else:
             n_trades = 0

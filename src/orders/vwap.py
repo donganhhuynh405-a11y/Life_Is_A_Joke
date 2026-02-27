@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from dataclasses import dataclass
+from typing import List, Optional
 
 import numpy as np
 
@@ -98,7 +98,8 @@ class VWAPExecutor:
         self.total_quantity = total_quantity
         self.volume_profile = volume_profile or VolumeProfile.uniform()
         self.start_bucket = start_bucket
-        self.end_bucket = end_bucket if end_bucket is not None else len(self.volume_profile.buckets) - 1
+        self.end_bucket = end_bucket if end_bucket is not None else len(
+            self.volume_profile.buckets) - 1
         self.participation_rate = participation_rate
         self.slices: List[VWAPSlice] = []
         self._build_slices()
@@ -110,7 +111,7 @@ class VWAPExecutor:
     def _build_slices(self) -> None:
         """Allocate quantities across active buckets."""
         profile = self.volume_profile.buckets
-        active = profile[self.start_bucket : self.end_bucket + 1]
+        active = profile[self.start_bucket: self.end_bucket + 1]
         total_weight = active.sum()
         if total_weight <= 0:
             active = np.ones(len(active)) / len(active)
@@ -157,7 +158,8 @@ class VWAPExecutor:
             for sl in self.slices
             if sl.bucket_index < bucket_index and sl.status != "filled"
         )
-        pending = [sl for sl in self.slices if sl.bucket_index >= bucket_index and sl.status == "pending"]
+        pending = [sl for sl in self.slices if sl.bucket_index >=
+                   bucket_index and sl.status == "pending"]
         if pending and missed > 0:
             extra_per_slice = missed / len(pending)
             for sl in pending:

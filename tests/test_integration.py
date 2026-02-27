@@ -4,7 +4,6 @@ Integration tests for the trading bot components working together.
 import sys
 import os
 import pytest
-import asyncio
 from unittest.mock import MagicMock, AsyncMock, patch
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
@@ -88,7 +87,7 @@ class TestExecutorIntegration:
 
     async def test_has_no_position_when_balance_zero(self, cfg):
         with patch('executor.ccxt') as mock_ccxt, \
-             patch('executor.retry_async', lambda **kw: lambda f: f):
+                patch('executor.retry_async', lambda **kw: lambda f: f):
             mock_exchange_instance = MagicMock()
             mock_exchange_instance.fetch_balance = AsyncMock(return_value={
                 'total': {'BTC': 0, 'USDT': 1000},

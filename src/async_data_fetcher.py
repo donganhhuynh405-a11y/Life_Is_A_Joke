@@ -6,7 +6,7 @@ import asyncio
 import logging
 import time
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -176,7 +176,11 @@ class AsyncDataFetcher:
                     logger.warning("Fetch timeout for key '%s' (attempt %d)", key, attempt + 1)
                 except Exception as exc:  # noqa: BLE001
                     last_exc = exc
-                    logger.warning("Fetch error for key '%s': %s (attempt %d)", key, exc, attempt + 1)
+                    logger.warning(
+                        "Fetch error for key '%s': %s (attempt %d)",
+                        key,
+                        exc,
+                        attempt + 1)
 
             if attempt < self.max_retries:
                 await asyncio.sleep(backoff)

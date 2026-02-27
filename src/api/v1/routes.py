@@ -18,9 +18,9 @@ from __future__ import annotations
 import logging
 import os
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, status
+from fastapi import APIRouter, FastAPI, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -214,7 +214,7 @@ async def cancel_order(order_id: str) -> Dict[str, str]:
 )
 async def get_portfolio() -> PortfolioResponse:
     """Get current portfolio summary and asset allocations."""
-    from .models import AssetAllocation, PortfolioSummary
+    from .models import PortfolioSummary
 
     summary = PortfolioSummary(
         total_value_usdt=0.0,

@@ -59,7 +59,10 @@ class PortfolioOptimizer:
         self._mean_returns = returns.mean(axis=0)
         self._cov_matrix = np.cov(returns, rowvar=False)
         self._n_assets = returns.shape[1]
-        logger.info("PortfolioOptimizer fitted on %d assets, %d periods.", self._n_assets, returns.shape[0])
+        logger.info(
+            "PortfolioOptimizer fitted on %d assets, %d periods.",
+            self._n_assets,
+            returns.shape[0])
         return self
 
     # ------------------------------------------------------------------

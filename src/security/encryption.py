@@ -121,7 +121,7 @@ class EncryptionManager:
             raise ValueError("Token is too short to be valid")
         AESGCM, *_ = _get_cryptography()
         nonce = token[: self.NONCE_LENGTH]
-        ciphertext = token[self.NONCE_LENGTH :]
+        ciphertext = token[self.NONCE_LENGTH:]
         aesgcm = AESGCM(self._key)
         try:
             return aesgcm.decrypt(nonce, ciphertext, associated_data)

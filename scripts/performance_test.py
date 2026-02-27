@@ -9,13 +9,12 @@ Usage:
 """
 
 import argparse
-import asyncio
 import gc
 import logging
 import sys
 import time
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Callable
 from unittest.mock import MagicMock, patch
 
 ROOT_DIR = Path(__file__).parent.parent

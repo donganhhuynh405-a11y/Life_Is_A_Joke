@@ -6,7 +6,6 @@ import logging
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 
-import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -107,7 +106,7 @@ class SmartOrderRouter:
             if len(venue_quantities) >= self.max_venues and venue_name not in venue_quantities:
                 continue
             take = min(qty, remaining)
-            cost = take * price * (1 + fee_rate)
+            take * price * (1 + fee_rate)
             venue_quantities[venue_name] = venue_quantities.get(venue_name, 0) + take
             remaining -= take
 

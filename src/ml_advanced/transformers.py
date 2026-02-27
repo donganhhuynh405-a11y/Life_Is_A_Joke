@@ -7,7 +7,7 @@ so the module can be imported even when those libraries are absent.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 
@@ -84,7 +84,6 @@ class TimeSeriesTransformer:
             An ``nn.Module`` instance.
         """
         try:
-            import torch
             import torch.nn as nn
 
             class _TransformerModel(nn.Module):
@@ -320,11 +319,19 @@ class TemporalConvNet:
             import torch.nn as nn
 
             class _ResidualBlock(nn.Module):
-                def __init__(self, in_ch: int, out_ch: int, dilation: int, kernel_size: int, dropout: float) -> None:
+                def __init__(
+                        self,
+                        in_ch: int,
+                        out_ch: int,
+                        dilation: int,
+                        kernel_size: int,
+                        dropout: float) -> None:
                     super().__init__()
                     pad = (kernel_size - 1) * dilation
-                    self.conv1 = nn.Conv1d(in_ch, out_ch, kernel_size, dilation=dilation, padding=pad)
-                    self.conv2 = nn.Conv1d(out_ch, out_ch, kernel_size, dilation=dilation, padding=pad)
+                    self.conv1 = nn.Conv1d(
+                        in_ch, out_ch, kernel_size, dilation=dilation, padding=pad)
+                    self.conv2 = nn.Conv1d(
+                        out_ch, out_ch, kernel_size, dilation=dilation, padding=pad)
                     self.relu = nn.ReLU()
                     self.dropout = nn.Dropout(dropout)
                     self.downsample = nn.Conv1d(in_ch, out_ch, 1) if in_ch != out_ch else None
@@ -352,7 +359,13 @@ class TemporalConvNet:
                     in_ch = input_channels
                     for i in range(num_levels):
                         dilation = 2 ** i
-                        layers.append(_ResidualBlock(in_ch, hidden_channels, dilation, kernel_size, dropout))
+                        layers.append(
+                            _ResidualBlock(
+                                in_ch,
+                                hidden_channels,
+                                dilation,
+                                kernel_size,
+                                dropout))
                         in_ch = hidden_channels
                     self.network = nn.Sequential(*layers)
                     self.fc = nn.Linear(hidden_channels, prediction_horizon)
@@ -374,7 +387,8 @@ class TemporalConvNet:
             logger.error("PyTorch is required to build the TCN model.")
             raise
 
-    def fit(self, X: np.ndarray, y: np.ndarray, epochs: int = 50, batch_size: int = 32, learning_rate: float = 1e-3) -> Dict[str, List[float]]:
+    def fit(self, X: np.ndarray, y: np.ndarray, epochs: int = 50, batch_size: int = 32,
+            learning_rate: float = 1e-3) -> Dict[str, List[float]]:
         """Train the TCN.
 
         Args:

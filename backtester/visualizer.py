@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Dict, List, Optional
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -64,7 +64,10 @@ class BacktestVisualizer:
             return
 
         with plt.style.context(self.style):
-            fig, axes = plt.subplots(2, 1, figsize=self.figsize, gridspec_kw={"height_ratios": [3, 1]})
+            fig, axes = plt.subplots(
+                2, 1, figsize=self.figsize, gridspec_kw={
+                    "height_ratios": [
+                        3, 1]})
             ax_eq, ax_dd = axes
 
             # Normalise to 100
@@ -155,7 +158,8 @@ class BacktestVisualizer:
         if plt is None:
             return
 
-        roll_sharpe = (returns.rolling(window).mean() / returns.rolling(window).std()) * np.sqrt(252)
+        roll_sharpe = (returns.rolling(window).mean() /
+                       returns.rolling(window).std()) * np.sqrt(252)
         roll_vol = returns.rolling(window).std() * np.sqrt(252)
 
         with plt.style.context(self.style):
@@ -194,7 +198,9 @@ class BacktestVisualizer:
             return
 
         monthly = (1 + returns).resample("ME").prod() - 1
-        df = pd.DataFrame({"year": monthly.index.year, "month": monthly.index.month, "ret": monthly.values})
+        df = pd.DataFrame({"year": monthly.index.year,
+                           "month": monthly.index.month,
+                           "ret": monthly.values})
         pivot = df.pivot(index="year", columns="month", values="ret")
         pivot.columns = [
             "Jan", "Feb", "Mar", "Apr", "May", "Jun",

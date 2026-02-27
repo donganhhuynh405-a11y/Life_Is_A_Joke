@@ -1,16 +1,15 @@
 """
 Tests for BaseStrategy and concrete strategy implementations.
 """
+from strategies.enhanced_multi_indicator import EnhancedMultiIndicatorStrategy
+from strategies.simple_trend import SimpleTrendStrategy
+from strategies.base_strategy import BaseStrategy
 import sys
 import os
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
-
-from strategies.base_strategy import BaseStrategy
-from strategies.simple_trend import SimpleTrendStrategy
-from strategies.enhanced_multi_indicator import EnhancedMultiIndicatorStrategy
 
 
 def _make_klines(closes):
@@ -78,7 +77,7 @@ class TestSimpleTrendStrategy:
         db.get_open_positions.return_value = []
         strategy = SimpleTrendStrategy(cfg, client, db, risk)
         result = strategy.analyze()
-        actions = [s['action'] for s in result]
+        [s['action'] for s in result]
         # We just verify the method ran without error and returns valid structure
         for signal in result:
             assert 'action' in signal

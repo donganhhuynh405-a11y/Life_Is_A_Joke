@@ -7,7 +7,7 @@ ensuring this module is always importable.
 from __future__ import annotations
 
 import logging
-from typing import Dict, List, Optional, Tuple, Union
+from typing import List, Optional
 
 import numpy as np
 import pandas as pd
@@ -105,7 +105,8 @@ class FeatureEngineer:
         df["BB_upper"] = mid + num_std * std
         df["BB_lower"] = mid - num_std * std
         df["BB_width"] = (df["BB_upper"] - df["BB_lower"]) / mid.replace(0, np.nan)
-        df["BB_pct"] = (df[self.close_col] - df["BB_lower"]) / (df["BB_upper"] - df["BB_lower"]).replace(0, np.nan)
+        df["BB_pct"] = (df[self.close_col] - df["BB_lower"]) / \
+            (df["BB_upper"] - df["BB_lower"]).replace(0, np.nan)
         return df
 
     def add_rsi(self, df: pd.DataFrame, windows: List[int] = [7, 14, 21]) -> pd.DataFrame:
@@ -196,11 +197,18 @@ class FeatureEngineer:
         df = df.copy()
         low_min = df[self.low_col].rolling(k_window).min()
         high_max = df[self.high_col].rolling(k_window).max()
-        df["stoch_k"] = 100 * (df[self.close_col] - low_min) / (high_max - low_min).replace(0, np.nan)
+        df["stoch_k"] = 100 * (df[self.close_col] - low_min) / \
+            (high_max - low_min).replace(0, np.nan)
         df["stoch_d"] = df["stoch_k"].rolling(d_window).mean()
         return df
 
-    def add_volume_features(self, df: pd.DataFrame, windows: List[int] = [5, 10, 20]) -> pd.DataFrame:
+    def add_volume_features(
+        self,
+        df: pd.DataFrame,
+        windows: List[int] = [
+            5,
+            10,
+            20]) -> pd.DataFrame:
         """Add volume-based features.
 
         Args:
@@ -334,7 +342,8 @@ class FeatureEngineer:
 
         return df
 
-    def get_feature_columns(self, df: pd.DataFrame, exclude: Optional[List[str]] = None) -> List[str]:
+    def get_feature_columns(self, df: pd.DataFrame,
+                            exclude: Optional[List[str]] = None) -> List[str]:
         """Return the list of engineered feature column names.
 
         Args:

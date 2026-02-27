@@ -183,7 +183,8 @@ class PortfolioRebalancer:
     # Reporting
     # ------------------------------------------------------------------
 
-    def allocation_report(self, holdings: np.ndarray, prices: np.ndarray) -> Dict[str, Dict[str, float]]:
+    def allocation_report(self, holdings: np.ndarray,
+                          prices: np.ndarray) -> Dict[str, Dict[str, float]]:
         """Produce a human-readable allocation report.
 
         Args:

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Callable, Dict, List
 
 import numpy as np
 import pandas as pd
@@ -102,7 +102,8 @@ class MultiAssetBacktester:
         equity_series: Dict[pd.Timestamp, float] = {}
         positions_history: List[PortfolioState] = []
         n_trades = 0
-        rebalance_dates = pd.date_range(prices.index[0], prices.index[-1], freq=self.rebalance_frequency)
+        rebalance_dates = pd.date_range(
+            prices.index[0], prices.index[-1], freq=self.rebalance_frequency)
 
         peak_equity = self.initial_capital
         max_drawdown = 0.0
@@ -160,7 +161,8 @@ class MultiAssetBacktester:
         equity_curve = pd.Series(equity_series)
         daily_returns = equity_curve.pct_change().dropna()
 
-        total_return = (equity_curve.iloc[-1] / self.initial_capital - 1) if len(equity_curve) else 0.0
+        total_return = (equity_curve.iloc[-1] /
+                        self.initial_capital - 1) if len(equity_curve) else 0.0
         n_years = len(prices) / 252
         annualised = (1 + total_return) ** (1 / n_years) - 1 if n_years > 0 else 0.0
         sharpe = (
@@ -206,7 +208,8 @@ class MultiAssetBacktester:
         aligned.columns = ["strategy", "benchmark"]
 
         cov = aligned.cov()
-        beta = cov.loc["strategy", "benchmark"] / cov.loc["benchmark", "benchmark"] if cov.loc["benchmark", "benchmark"] else 0.0
+        beta = cov.loc["strategy", "benchmark"] / cov.loc["benchmark",
+                                                          "benchmark"] if cov.loc["benchmark", "benchmark"] else 0.0
         alpha = (aligned["strategy"].mean() - beta * aligned["benchmark"].mean()) * 252
         te = (aligned["strategy"] - aligned["benchmark"]).std() * np.sqrt(252)
         ir = alpha / te if te > 0 else 0.0
