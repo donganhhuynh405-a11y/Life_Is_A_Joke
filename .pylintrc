@@ -1,0 +1,130 @@
+[MASTER]
+# Use multiple processes to speed up Pylint
+jobs=2
+
+# Allow loading of arbitrary C extensions
+unsafe-load-any-extension=no
+
+ignore=
+    CVS,
+    venv,
+    .venv,
+    frontend,
+    notebooks,
+    build,
+    dist
+
+ignore-patterns=
+    .*\\.pyc,
+    .*migrations.*
+
+[MESSAGES CONTROL]
+disable=
+    C0111,  # missing-docstring (too strict)
+    C0114,  # missing-module-docstring
+    C0115,  # missing-class-docstring
+    C0116,  # missing-function-docstring
+    R0903,  # too-few-public-methods
+    R0913,  # too-many-arguments
+    R0914,  # too-many-locals
+    W0212,  # protected-access (needed for testing)
+    W0611,  # unused-import (handled by flake8)
+    W0703,  # broad-except
+    E1101,  # generated-members (false positives with torch/tf)
+    C0301,  # line-too-long (handled by flake8/black)
+
+[FORMAT]
+max-line-length=100
+indent-string='    '
+
+[BASIC]
+# Naming conventions
+module-naming-style=snake_case
+class-naming-style=PascalCase
+function-naming-style=snake_case
+method-naming-style=snake_case
+attr-naming-style=snake_case
+argument-naming-style=snake_case
+variable-naming-style=snake_case
+const-naming-style=UPPER_CASE
+
+good-names=
+    i,
+    j,
+    k,
+    e,
+    x,
+    y,
+    df,
+    dt,
+    id,
+    lr,
+    fn,
+    tp,
+    sl,
+    f,
+
+[DESIGN]
+max-args=10
+max-locals=20
+max-returns=6
+max-branches=12
+max-statements=50
+max-parents=7
+max-attributes=10
+min-public-methods=1
+max-public-methods=25
+max-bool-expr=5
+max-nested-blocks=5
+max-line-length=100
+
+[SIMILARITIES]
+min-similarity-lines=6
+ignore-comments=yes
+ignore-docstrings=yes
+ignore-imports=yes
+
+[TYPECHECK]
+# List of module names for which member attributes should not be checked
+ignored-modules=
+    torch,
+    tensorflow,
+    numpy,
+    ccxt,
+    transformers,
+    sklearn,
+    scipy,
+    xgboost,
+    lightgbm,
+    catboost,
+    shap,
+    lime,
+    redis,
+    hvac,
+    opentelemetry,
+    prometheus_client,
+    ta,
+    optuna,
+
+[IMPORTS]
+known-third-party=
+    torch,
+    tensorflow,
+    numpy,
+    pandas,
+    ccxt,
+    transformers,
+    sklearn,
+    scipy,
+    xgboost,
+    lightgbm,
+    catboost,
+    redis,
+    fastapi,
+    pydantic,
+    sqlalchemy,
+
+[EXCEPTIONS]
+overgeneral-exceptions=
+    builtins.BaseException,
+    builtins.Exception,

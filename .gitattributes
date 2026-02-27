@@ -1,0 +1,68 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Python files
+*.py text eol=lf
+*.pyx text eol=lf
+*.pxd text eol=lf
+
+# Configuration
+*.yaml text eol=lf
+*.yml text eol=lf
+*.toml text eol=lf
+*.ini text eol=lf
+*.cfg text eol=lf
+*.json text eol=lf
+
+# Shell scripts (force LF)
+*.sh text eol=lf
+*.bash text eol=lf
+
+# Windows scripts (force CRLF)
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Documentation
+*.md text eol=lf
+*.rst text eol=lf
+*.txt text eol=lf
+
+# TypeScript/JavaScript
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.jsx text eol=lf
+*.css text eol=lf
+*.scss text eol=lf
+*.html text eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.tar binary
+*.7z binary
+
+# ML model files (binary)
+*.h5 binary
+*.pt binary
+*.pkl binary
+*.joblib binary
+*.onnx binary
+
+# Jupyter notebooks
+*.ipynb text eol=lf
+
+# Diff settings for notebooks
+*.ipynb linguist-language=Jupyter Notebook
+
+# Mark generated files
+dist/** linguist-generated=true
+build/** linguist-generated=true
+frontend/build/** linguist-generated=true
