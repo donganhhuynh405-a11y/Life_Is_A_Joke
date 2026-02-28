@@ -753,8 +753,8 @@ class StrategyManager:
             is_stop_loss = 'stop loss' in reason.lower() or 'sl' in reason.lower()
             is_take_profit = 'take profit' in reason.lower() or 'tp' in reason.lower()
 
-            # Avoid closing positions at a loss unless it's stop-loss or necessary
-            if potential_pnl < 0 and not is_stop_loss:
+            # Avoid closing positions at a loss unless it's a stop-loss or take-profit trigger
+            if potential_pnl < 0 and not is_stop_loss and not is_take_profit:
                 self.logger.info(
                     f"Skipping close of {symbol} position {position_id} - would result in loss of ${
                         potential_pnl:.2f}. Reason: {reason}")

@@ -513,7 +513,6 @@ class AICommentaryGenerator:
                 monthly_pnl = perf_30d.get('total_pnl', 0)
                 win_rate_30d = perf_30d.get('win_rate', 0)
                 profit_factor_30d = perf_30d.get('profit_factor', 0)
-                perf_30d.get('total_trades', 0)
 
                 # Compute ROI from start-of-month USDT balance snapshot
                 start_balance = self._get_start_of_month_balance()
