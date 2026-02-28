@@ -60,8 +60,8 @@ echo ""
 # Step 4: Update code
 print_info "Step 4/6: Updating code..."
 git fetch --all
-git reset --hard origin/copilot/transfer-files-to-empty-repo
-git pull origin copilot/transfer-files-to-empty-repo
+git reset --hard origin/main
+git pull origin main
 print_info "   ✅ Code updated"
 echo ""
 

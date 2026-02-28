@@ -732,6 +732,10 @@ class StrategyManager:
                 self.logger.warning(f"Position {position_id} not found")
                 return
 
+            if position.get('status') == 'closed':
+                self.logger.warning(f"Position {position_id} is already closed, skipping close operation")
+                return
+
             exit_price = signal.get('price', 0)
             entry_price = position.get('entry_price', 0)
             quantity = position.get('quantity', 0)
@@ -747,10 +751,10 @@ class StrategyManager:
 
             # Check if this is a stop-loss or take-profit trigger
             is_stop_loss = 'stop loss' in reason.lower() or 'sl' in reason.lower()
-            'take profit' in reason.lower() or 'tp' in reason.lower()
+            is_take_profit = 'take profit' in reason.lower() or 'tp' in reason.lower()
 
-            # Avoid closing positions at a loss unless it's stop-loss or necessary
-            if potential_pnl < 0 and not is_stop_loss:
+            # Avoid closing positions at a loss unless it's a stop-loss or take-profit trigger
+            if potential_pnl < 0 and not is_stop_loss and not is_take_profit:
                 self.logger.info(
                     f"Skipping close of {symbol} position {position_id} - would result in loss of ${
                         potential_pnl:.2f}. Reason: {reason}")
@@ -785,7 +789,8 @@ class StrategyManager:
                                     f"No {base_asset} balance to close position {position_id}. Marking as closed in database.")
                                 # Mark position as closed even though we can't close on exchange
                                 # (position was likely already closed manually or doesn't exist)
-                                exit_price = exit_price or entry_price
+                                # Use entry_price to record zero PnL since we don't know the actual exit
+                                exit_price = entry_price
                             elif actual_balance < quantity:
                                 self.logger.warning(
                                     f"Actual {base_asset} balance {actual_balance} < stored quantity {quantity}. Using stored quantity for close order.")
@@ -805,6 +810,8 @@ class StrategyManager:
                             self.logger.warning(
                                 f"Order value ${
                                     estimated_value:.2f} below minimum ${min_order_value}. Marking position as closed without exchange order.")
+                            # Use entry_price to record zero PnL since we can't close on exchange
+                            exit_price = entry_price
                         else:
                             # Attempt to close position on exchange
                             order = self.client.create_order(
@@ -833,8 +840,8 @@ class StrategyManager:
                         self.logger.warning(
                             f"Position {position_id} cannot be closed on exchange ({
                                 str(e)}). Marking as closed in database.")
-                        # Use signal price or entry price as exit price
-                        exit_price = exit_price or entry_price
+                        # Use entry_price to record zero PnL since trade failed to execute
+                        exit_price = entry_price
                     else:
                         self.logger.error(f"Failed to close position on exchange: {str(e)}")
                         # Send error notification - isolated in try-except

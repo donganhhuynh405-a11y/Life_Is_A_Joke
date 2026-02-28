@@ -81,7 +81,7 @@ echo ""
 
 # Step 5: Clone fresh code
 print_info "Step 5/6: Cloning fresh code..."
-sudo git clone -b copilot/transfer-files-to-empty-repo https://github.com/matthew3f2eb8c4-pixel/life_is_a_joke.git trading-bot
+sudo git clone -b main https://github.com/donganhhuynh405-a11y/Life_Is_A_Joke.git trading-bot
 cd trading-bot
 
 print_info "   ✅ Code cloned"
