@@ -13,6 +13,7 @@ Enhanced with:
 
 import logging
 import os
+import sqlite3
 from typing import Dict, Optional
 from datetime import datetime
 
@@ -52,6 +53,7 @@ class AICommentaryGenerator:
             language: Notification language code (default: from env or 'en')
         """
         self.logger = logger or logging.getLogger(__name__)
+        self.db_path = db_path
         self.trade_analyzer = TradeAnalyzer(db_path=db_path)
         self.perf_analyzer = PerformanceAnalyzer(db_path=db_path)
         self.signal_scorer = SignalScorer(db_path=db_path)
@@ -81,6 +83,25 @@ class AICommentaryGenerator:
             return self.translator.get(key, **kwargs)
         # Fallback to key if no translator
         return key
+
+    def _get_start_of_month_balance(self) -> Optional[float]:
+        """Return the earliest USDT balance snapshot from the current calendar month."""
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT balance_usdt
+                FROM balance_snapshots
+                WHERE strftime('%Y-%m', recorded_at, 'localtime') = strftime('%Y-%m', 'now', 'localtime')
+                ORDER BY recorded_at ASC
+                LIMIT 1
+            ''')
+            row = cursor.fetchone()
+            conn.close()
+            return row[0] if row else None
+        except Exception as e:
+            self.logger.debug(f"Could not fetch start-of-month balance: {e}")
+            return None
 
     def _refresh_cache_if_needed(self):
         """Refresh cache if TTL expired"""
@@ -494,19 +515,20 @@ class AICommentaryGenerator:
                 profit_factor_30d = perf_30d.get('profit_factor', 0)
                 perf_30d.get('total_trades', 0)
 
-                if monthly_pnl > 0:
-                    total_invested_30d = perf_30d.get('total_invested', 0)
-                    if total_invested_30d > 0:
-                        roi = (monthly_pnl / total_invested_30d) * 100
-                        parts.append(
-                            f"📅 <b>Monthly performance:</b> ${
-                                monthly_pnl:,.2f} profit ({
-                                win_rate_30d:.0f}% win rate, ~{
-                                roi:.1f}% ROI)")
-                    else:
-                        parts.append(
-                            f"📅 <b>Monthly performance:</b> ${
-                                monthly_pnl:,.2f} profit ({win_rate_30d:.0f}% win rate)")
+                # Compute ROI from start-of-month USDT balance snapshot
+                start_balance = self._get_start_of_month_balance()
+                if monthly_pnl != 0 and start_balance:
+                    roi = (monthly_pnl / start_balance) * 100
+                    sign = "profit" if monthly_pnl > 0 else "loss"
+                    parts.append(
+                        f"📅 <b>Monthly performance:</b> ${
+                            abs(monthly_pnl):,.2f} {sign} ({
+                            win_rate_30d:.0f}% win rate, ~{
+                            roi:+.1f}% ROI)")
+                elif monthly_pnl > 0:
+                    parts.append(
+                        f"📅 <b>Monthly performance:</b> ${
+                            monthly_pnl:,.2f} profit ({win_rate_30d:.0f}% win rate)")
                 else:
                     parts.append(
                         f"📅 <b>Monthly performance:</b> ${abs(monthly_pnl):,.2f} loss ({win_rate_30d:.0f}% win rate)")

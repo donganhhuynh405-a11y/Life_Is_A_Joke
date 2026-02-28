@@ -107,8 +107,47 @@ class Database:
             )
         ''')
 
+        # Balance snapshots table - records USDT balance at a point in time
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS balance_snapshots (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                balance_usdt REAL NOT NULL,
+                recorded_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
         self.conn.commit()
         self.logger.info("Database schema initialized")
+
+    def save_balance_snapshot(self, balance_usdt: float) -> None:
+        """Save a USDT balance snapshot (at most once per day)"""
+        cursor = self.conn.cursor()
+        # Only insert if we don't already have a record for today
+        cursor.execute('''
+            INSERT INTO balance_snapshots (balance_usdt)
+            SELECT ?
+            WHERE NOT EXISTS (
+                SELECT 1 FROM balance_snapshots
+                WHERE DATE(recorded_at) = DATE('now', 'localtime')
+            )
+        ''', (balance_usdt,))
+        self.conn.commit()
+
+    def get_start_of_month_balance(self) -> Optional[float]:
+        """Get the earliest USDT balance recorded in the current calendar month.
+
+        Returns None if no snapshot exists for the current month.
+        """
+        cursor = self.conn.cursor()
+        cursor.execute('''
+            SELECT balance_usdt
+            FROM balance_snapshots
+            WHERE strftime('%Y-%m', recorded_at, 'localtime') = strftime('%Y-%m', 'now', 'localtime')
+            ORDER BY recorded_at ASC
+            LIMIT 1
+        ''')
+        row = cursor.fetchone()
+        return row[0] if row else None
 
     def record_trade(self, trade_data: Dict) -> int:
         """Record a trade"""

@@ -429,6 +429,14 @@ class TradingBot:
                     self.logger.error(f"Error fetching balances: {e}")
                     balance_data = {'USDT': 0}
 
+                # Record a daily balance snapshot for monthly ROI calculation
+                try:
+                    usdt_balance = float(balance_data.get('USDT', 0))
+                    if usdt_balance > 0:
+                        self.db.save_balance_snapshot(usdt_balance)
+                except Exception as e:
+                    self.logger.warning(f"Could not save balance snapshot: {e}")
+
                 # Get daily P/L
                 daily_pnl = self.db.get_daily_profit_loss()
 
