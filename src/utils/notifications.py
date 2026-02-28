@@ -45,6 +45,10 @@ class TelegramNotifier:
         self._notification_cache: Dict[tuple, float] = {}
         self._cache_timeout = 60  # seconds - notifications for same position within this time are considered duplicates
 
+        # Snapshot of key metrics from the previous hourly report for change detection
+        # Stores (open_positions_count, daily_pnl, usdt_balance) to detect unchanged reports
+        self._last_hourly_snapshot: Optional[tuple] = None
+
         # Initialize translation manager
         self.language = language or os.getenv('NOTIFICATION_LANGUAGE', 'en')
         if TRANSLATIONS_AVAILABLE:
@@ -599,7 +603,8 @@ class TelegramNotifier:
                               trends: Dict[str, Dict] = None,
                               strategy_adjustments: Dict[str, Any] = None,
                               elite_ai_data: Dict[str, Any] = None,
-                              news_summary: Dict[str, Any] = None) -> bool:
+                              news_summary: Dict[str, Any] = None,
+                              daily_trades: int = None) -> bool:
         """
         Send hourly status summary with trend analysis
 
@@ -613,6 +618,7 @@ class TelegramNotifier:
             strategy_adjustments: Strategy adjustments from advisor (optional)
             elite_ai_data: Elite AI analysis data (optional)
             news_summary: Crypto news summary with AI analysis (optional)
+            daily_trades: Number of trades made today (optional)
 
         Returns:
             True if sent successfully
@@ -658,6 +664,13 @@ class TelegramNotifier:
             # Build message
             balance_text = "\n".join(balance_lines)
 
+            # Detect whether key metrics have changed since the last hourly report
+            # Snapshot: (open_positions, daily_pnl rounded to cents, USDT balance rounded to cents)
+            usdt_balance = round(float(balance_data.get('USDT', balance_data.get('BUSD', 0)) or 0), 2)
+            current_snapshot = (open_positions_count, round(daily_pnl, 2), usdt_balance)
+            data_unchanged = (self._last_hourly_snapshot is not None
+                              and current_snapshot == self._last_hourly_snapshot)
+
             # Generate AI daily commentary
             ai_commentary = ""
             try:
@@ -681,6 +694,20 @@ class TelegramNotifier:
 
 {pnl_emoji} <b>{self.t('daily_pnl', 'Daily P&L')}:</b> <code>{pnl_sign}${daily_pnl:,.2f}</code>
 """
+
+            # Add daily trade count if provided
+            if daily_trades is not None:
+                message += f"📊 <b>{self.t('daily_trades', 'Сделок сегодня')}:</b> <code>{daily_trades}</code>\n"
+
+            # Indicate when key metrics are unchanged since the last hourly report.
+            # This is expected and normal when the bot is in scanning mode with no open
+            # positions.  The message is informational — it confirms the bot is running
+            # correctly and simply waiting for a high-quality setup.
+            if data_unchanged:
+                message += (
+                    f"\n📋 <i>{self.t('data_unchanged', 'Данные не изменились с прошлого отчёта — '
+                                     'бот работает в штатном режиме и сканирует рынок.')}</i>\n"
+                )
 
             # Add total P/L if provided
             if total_pnl is not None:
@@ -1062,7 +1089,12 @@ class TelegramNotifier:
 
             message += f"\n⏰ Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
 
-            return self.send_message(message.strip())
+            sent = self.send_message(message.strip())
+            # Update the snapshot only after a successful send so the next hourly
+            # report can reliably detect whether key data has changed.
+            if sent:
+                self._last_hourly_snapshot = current_snapshot
+            return sent
 
         except Exception as e:
             self.logger.error(f"Error formatting hourly summary notification: {e}", exc_info=True)

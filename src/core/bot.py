@@ -440,6 +440,13 @@ class TradingBot:
                 # Get daily P/L
                 daily_pnl = self.db.get_daily_profit_loss()
 
+                # Get daily trade count to show activity in hourly notification
+                try:
+                    daily_trades = self.db.get_daily_trade_count()
+                except Exception as e:
+                    self.logger.warning(f"Could not get daily trade count: {e}")
+                    daily_trades = None
+
                 # Analyze market trends
                 trends = None
                 try:
@@ -741,7 +748,8 @@ class TradingBot:
                     trends=trends,
                     strategy_adjustments=strategy_adjustments,
                     elite_ai_data=self.elite_ai_data if hasattr(self, 'elite_ai_data') else None,
-                    news_summary=news_summary
+                    news_summary=news_summary,
+                    daily_trades=daily_trades
                 )
 
                 # Update last notification time
