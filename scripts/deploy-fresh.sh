@@ -52,7 +52,7 @@ echo ""
 
 # Step 3: Clone repository
 print_info "Step 3/8: Cloning repository..."
-git clone -b copilot/transfer-files-to-empty-repo https://github.com/matthew3f2eb8c4-pixel/life_is_a_joke.git trading-bot
+git clone -b main https://github.com/donganhhuynh405-a11y/Life_Is_A_Joke.git trading-bot
 cd trading-bot
 print_info "   ✅ Repository cloned"
 echo ""

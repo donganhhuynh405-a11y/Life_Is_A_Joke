@@ -1,6 +1,6 @@
 #!/bin/bash
 # Quick download and install script for the trading bot
-# Usage: curl -sL https://raw.githubusercontent.com/matthew3f2eb8c4-pixel/life_is_a_joke/copilot/transfer-files-to-empty-repo/scripts/quick_install.sh | bash
+# Usage: curl -sL https://raw.githubusercontent.com/donganhhuynh405-a11y/Life_Is_A_Joke/main/scripts/quick_install.sh | bash
 
 set -e
 
@@ -10,8 +10,8 @@ echo "======================================================"
 echo ""
 
 # Configuration
-REPO_URL="https://github.com/matthew3f2eb8c4-pixel/life_is_a_joke.git"
-BRANCH="copilot/transfer-files-to-empty-repo"
+REPO_URL="https://github.com/donganhhuynh405-a11y/Life_Is_A_Joke.git"
+BRANCH="main"
 INSTALL_DIR="$HOME/life_is_a_joke"
 
 # Check if git is installed

@@ -24,11 +24,11 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-REPO_URL="https://github.com/matthew3f2eb8c4-pixel/life_is_a_joke.git"
+REPO_URL="https://github.com/donganhhuynh405-a11y/Life_Is_A_Joke.git"
 REPO_DIR="$HOME/trading-bot-setup/life_is_a_joke"
 BOT_DIR="/opt/trading-bot"
 SERVICE_NAME="trading-bot"
-BRANCH="copilot/transfer-files-to-empty-repo"
+BRANCH="main"
 
 # Print colored message
 print_status() {
