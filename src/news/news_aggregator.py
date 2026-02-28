@@ -5,11 +5,12 @@ Collects news from multiple sources and stores them for analysis
 import asyncio
 import aiohttp
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Optional
 import sqlite3
 import json
 import hashlib
+from email.utils import parsedate_to_datetime
 from news.news_sentiment_analyzer import NewsSentimentAnalyzer
 
 logger = logging.getLogger('bot.news_aggregator')
@@ -194,7 +195,7 @@ class NewsAggregator:
                                 'content': item.get('title', ''),
                                 'url': item.get('url', ''),
                                 'source': 'cryptopanic',
-                                'published_at': item.get('published_at', ''),
+                                'published_at': self._parse_date_to_iso(item.get('published_at', '')),
                                 'symbols': ','.join([c['code'] for c in item.get('currencies', [])]),
                                 'metadata': json.dumps({
                                     'votes': item.get('votes', {}),
@@ -246,8 +247,8 @@ class NewsAggregator:
                                     'url', ''), 'source': f"newsapi:{
                                     article.get(
                                         'source', {}).get(
-                                        'name', 'unknown')}", 'published_at': article.get(
-                                        'publishedAt', ''), 'symbols': self._extract_symbols(
+                                        'name', 'unknown')}", 'published_at': self._parse_date_to_iso(
+                                        article.get('publishedAt', '')), 'symbols': self._extract_symbols(
                                             article.get(
                                                 'title', '') + ' ' + article.get(
                                                     'description', '')), 'metadata': json.dumps(
@@ -288,7 +289,8 @@ class NewsAggregator:
                         'content': entry.get('summary', '') or entry.get('description', ''),
                         'url': entry.get('link', ''),
                         'source': f"rss:{feed.feed.get('title', feed_url)}",
-                        'published_at': entry.get('published', entry.get('updated', '')),
+                        'published_at': self._parse_date_to_iso(
+                            entry.get('published', entry.get('updated', ''))),
                         'symbols': self._extract_symbols(entry.get('title', '') + ' ' + entry.get('summary', '')),
                         'metadata': json.dumps({
                             'feed_url': feed_url
@@ -299,6 +301,30 @@ class NewsAggregator:
                 logger.error(f"Error fetching RSS feed {feed_url}: {e}")
 
         return news_items
+
+    def _parse_date_to_iso(self, date_str: str) -> str:
+        """Parse various date formats and return ISO 8601 UTC string for consistent DB storage/comparison"""
+        if not date_str:
+            return datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
+        # Already ISO-like format (e.g. from CryptoPanic/NewsAPI: "2026-02-25T12:30:00Z")
+        if len(date_str) >= 1 and date_str[0].isdigit():
+            for fmt in ('%Y-%m-%dT%H:%M:%SZ', '%Y-%m-%dT%H:%M:%S', '%Y-%m-%d %H:%M:%S', '%Y-%m-%d'):
+                try:
+                    dt = datetime.strptime(date_str, fmt)
+                    return dt.strftime('%Y-%m-%d %H:%M:%S')
+                except ValueError:
+                    continue
+        # Try RFC 2822 format (used by RSS feeds, e.g. "Mon, 25 Feb 2026 12:00:00 +0000")
+        try:
+            dt = parsedate_to_datetime(date_str)
+            # Convert to UTC and strip timezone info for consistent storage
+            dt_utc = dt.astimezone(timezone.utc).replace(tzinfo=None)
+            return dt_utc.strftime('%Y-%m-%d %H:%M:%S')
+        except Exception:
+            pass
+        # Fallback: current time
+        logger.warning(f"Could not parse date: {date_str!r}, using current time")
+        return datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
 
     def _generate_id(self, url: str) -> str:
         """Generate unique ID for news item"""
@@ -400,7 +426,7 @@ class NewsAggregator:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
 
-            cutoff_date = (datetime.now() - timedelta(days=7)).isoformat()
+            cutoff_date = (datetime.now(timezone.utc) - timedelta(days=7)).strftime('%Y-%m-%d %H:%M:%S')
             cursor.execute('''
                 DELETE FROM crypto_news
                 WHERE published_at < ?
@@ -459,7 +485,7 @@ class NewsAggregator:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
 
-            cutoff_date = (datetime.now() - timedelta(hours=hours)).isoformat()
+            cutoff_date = (datetime.now(timezone.utc) - timedelta(hours=hours)).strftime('%Y-%m-%d %H:%M:%S')
 
             if symbol:
                 cursor.execute('''
