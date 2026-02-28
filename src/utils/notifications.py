@@ -207,7 +207,7 @@ class TelegramNotifier:
             # Generate AI commentary
             ai_commentary = ""
             try:
-                from ml.ai_commentary import get_commentary_generator
+                from mi.ai_commentary import get_commentary_generator
                 commentary_gen = get_commentary_generator(self.logger, language=self.language)
                 confidence_normalized = score / 100 if score is not None else None
                 ai_commentary = commentary_gen.generate_position_open_commentary(
@@ -335,7 +335,7 @@ class TelegramNotifier:
             # Generate AI commentary
             ai_commentary = ""
             try:
-                from ml.ai_commentary import get_commentary_generator
+                from mi.ai_commentary import get_commentary_generator
                 commentary_gen = get_commentary_generator(self.logger, language=self.language)
                 ai_commentary = commentary_gen.generate_position_close_commentary(
                     symbol, side, pnl, pnl_percent
@@ -661,7 +661,7 @@ class TelegramNotifier:
             # Generate AI daily commentary
             ai_commentary = ""
             try:
-                from ml.ai_commentary import get_commentary_generator
+                from mi.ai_commentary import get_commentary_generator
                 commentary_gen = get_commentary_generator(self.logger, language=self.language)
                 ai_commentary = commentary_gen.generate_daily_summary_commentary(
                     daily_pnl, open_positions_count
@@ -852,11 +852,23 @@ class TelegramNotifier:
                             mult = adjustments['position_size_multiplier']
                             message += f"  📊 Position Size: <b>{mult:.0%}</b>\n"
 
-                        if 'confidence_threshold' in adjustments:
+                        # Support both 'confidence_threshold_adjustment' (StrategyAdvisor)
+                        # and 'confidence_threshold' (AdaptiveTactics) key names
+                        if 'confidence_threshold_adjustment' in adjustments:
+                            base_conf = 50.0
+                            conf = base_conf + adjustments['confidence_threshold_adjustment']
+                            conf = max(30.0, min(95.0, conf))
+                            message += f"  🎯 Min Confidence: <b>{conf:.0f}%</b>\n"
+                        elif 'confidence_threshold' in adjustments:
                             conf = adjustments['confidence_threshold'] * 100
                             message += f"  🎯 Min Confidence: <b>{conf:.0f}%</b>\n"
 
-                        if 'max_positions' in adjustments:
+                        # Support both 'max_positions_multiplier' and 'max_positions'
+                        if 'max_positions_multiplier' in adjustments:
+                            base_max = 5
+                            max_pos = max(1, int(base_max * adjustments['max_positions_multiplier']))
+                            message += f"  📋 Max Positions: <b>{max_pos}</b>\n"
+                        elif 'max_positions' in adjustments:
                             max_pos = adjustments['max_positions']
                             message += f"  📋 Max Positions: <b>{max_pos}</b>\n"
                     else:

@@ -65,7 +65,7 @@ class TradingBot:
         self.logger.info("Strategy manager initialized")
 
         try:
-            from ml import AdaptiveTacticsManager
+            from mi import AdaptiveTacticsManager
             self.adaptive_tactics = AdaptiveTacticsManager(config, self.db, self.logger)
             self.logger.info("Adaptive tactics manager initialized")
         except Exception as e:
@@ -73,7 +73,7 @@ class TradingBot:
             self.adaptive_tactics = None
 
         try:
-            from ml.strategy_advisor import StrategyAdvisor
+            from mi.strategy_advisor import StrategyAdvisor
             config_dict = {
                 'ADAPTIVE_STRATEGY_ENABLED': config.get('ADAPTIVE_STRATEGY_ENABLED', True),
                 'ADAPTIVE_ADJUSTMENT_INTERVAL': config.get('ADAPTIVE_ADJUSTMENT_INTERVAL', 3600),
@@ -485,23 +485,27 @@ class TradingBot:
                             'trend_summary': ''
                         }
                         if trends:
-                            # Calculate average trend strength
+                            # trends is a dict: {symbol: trend_info_dict}
                             trend_strengths = []
-                            for symbol_data in trends.get('symbols', []):
-                                trend_strengths.append(abs(symbol_data.get('trend_strength', 0)))
+                            for symbol, trend_info in trends.items():
+                                strength = trend_info.get('strength')
+                                if strength is None:
+                                    self.logger.warning(f"Trend info for {symbol} missing 'strength' key")
+                                    strength = 0
+                                trend_strengths.append(abs(strength))
 
                             if trend_strengths:
                                 avg_strength = sum(trend_strengths) / len(trend_strengths)
-                                market_data['avg_volatility'] = avg_strength
+                                # strength is 0-1 scale; convert to 0-100 for comparison
+                                avg_strength_pct = avg_strength * 100
+                                market_data['avg_volatility'] = avg_strength_pct
 
-                                if avg_strength > 70:
+                                if avg_strength_pct > 70:
                                     market_data['trend_strength'] = 'strong'
-                                elif avg_strength < 40:
+                                elif avg_strength_pct < 40:
                                     market_data['trend_strength'] = 'weak'
 
-                            market_data['trend_summary'] = trends.get('summary', '')
-
-                        # Prepare performance data
+                        # Prepare performance data using PerformanceAnalyzer for real metrics
                         performance_data = {
                             'daily_pnl': daily_pnl,
                             'weekly_pnl': 0,
@@ -510,15 +514,27 @@ class TradingBot:
                             'sharpe_ratio': 0
                         }
 
-                        # Get performance metrics from database
+                        # Get performance metrics from database and PerformanceAnalyzer
                         try:
                             metrics = self.db.get_performance_metrics()
                             if metrics:
-                                performance_data['weekly_pnl'] = metrics.get('weekly_pnl', 0)
                                 performance_data['win_rate'] = metrics.get('win_rate', 50)
-                                performance_data['max_drawdown_pct'] = metrics.get(
-                                    'max_drawdown_pct', 0)
-                                performance_data['sharpe_ratio'] = metrics.get('sharpe_ratio', 0)
+
+                            # Use PerformanceAnalyzer for sharpe, drawdown, weekly pnl
+                            try:
+                                from mi import TradeAnalyzer, PerformanceAnalyzer
+                                trade_analyzer = TradeAnalyzer(db_path=self.config.db_path)
+                                perf_analyzer = PerformanceAnalyzer(db_path=self.config.db_path)
+                                perf_7d = trade_analyzer.analyze_performance(days=7)
+                                adv_metrics = perf_analyzer.get_performance_summary()
+                                if perf_7d:
+                                    performance_data['weekly_pnl'] = perf_7d.get('total_pnl', 0)
+                                    performance_data['win_rate'] = perf_7d.get('win_rate', performance_data['win_rate'])
+                                if adv_metrics:
+                                    performance_data['max_drawdown_pct'] = adv_metrics.get('max_drawdown_pct', 0)
+                                    performance_data['sharpe_ratio'] = adv_metrics.get('sharpe_ratio', 0)
+                            except Exception as e:
+                                self.logger.warning(f"Could not get advanced performance metrics: {e}")
                         except Exception as e:
                             self.logger.warning(f"Could not get performance metrics: {e}")
 
@@ -547,6 +563,8 @@ class TradingBot:
                                 if hasattr(self.strategy_manager, 'apply_strategy_adjustments'):
                                     self.strategy_manager.apply_strategy_adjustments(
                                         advice['adjustments'])
+                                else:
+                                    self.logger.warning("apply_strategy_adjustments not available on strategy_manager")
                             except Exception as apply_error:
                                 self.logger.error(
                                     f"Error applying strategy adjustments: {apply_error}")
