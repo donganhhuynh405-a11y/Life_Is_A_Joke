@@ -59,6 +59,7 @@ class TradeAnalyzer:
         losing = [p for p in positions if p['pnl'] < 0]
 
         total_pnl = sum(p['pnl'] for p in positions)
+        total_invested = sum(p['entry_price'] * p['quantity'] for p in positions)
         avg_profit = sum(p['pnl'] for p in profitable) / len(profitable) if profitable else 0
         avg_loss = sum(p['pnl'] for p in losing) / len(losing) if losing else 0
 
@@ -69,6 +70,7 @@ class TradeAnalyzer:
             'win_rate': (
                 len(profitable) / len(positions) * 100) if positions else 0,
             'total_pnl': total_pnl,
+            'total_invested': total_invested,
             'avg_profit': avg_profit,
             'avg_loss': avg_loss,
             'best_trade': max(

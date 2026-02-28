@@ -495,12 +495,18 @@ class AICommentaryGenerator:
                 perf_30d.get('total_trades', 0)
 
                 if monthly_pnl > 0:
-                    roi = (monthly_pnl / 10000) * 100  # Assume 10k starting capital
-                    parts.append(
-                        f"📅 <b>Monthly performance:</b> ${
-                            monthly_pnl:,.2f} profit ({
-                            win_rate_30d:.0f}% win rate, ~{
-                            roi:.1f}% ROI)")
+                    total_invested_30d = perf_30d.get('total_invested', 0)
+                    if total_invested_30d > 0:
+                        roi = (monthly_pnl / total_invested_30d) * 100
+                        parts.append(
+                            f"📅 <b>Monthly performance:</b> ${
+                                monthly_pnl:,.2f} profit ({
+                                win_rate_30d:.0f}% win rate, ~{
+                                roi:.1f}% ROI)")
+                    else:
+                        parts.append(
+                            f"📅 <b>Monthly performance:</b> ${
+                                monthly_pnl:,.2f} profit ({win_rate_30d:.0f}% win rate)")
                 else:
                     parts.append(
                         f"📅 <b>Monthly performance:</b> ${abs(monthly_pnl):,.2f} loss ({win_rate_30d:.0f}% win rate)")
