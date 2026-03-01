@@ -605,7 +605,8 @@ class TelegramNotifier:
                               elite_ai_data: Dict[str, Any] = None,
                               news_summary: Dict[str, Any] = None,
                               daily_trades: int = None,
-                              ml_status: Dict[str, Any] = None) -> bool:
+                              ml_status: Dict[str, Any] = None,
+                              roi: float = None) -> bool:
         """
         Send hourly status summary with trend analysis
 
@@ -624,6 +625,7 @@ class TelegramNotifier:
                 {'BTCUSDT': {'accuracy': 0.63, 'f1_score': 0.61,
                              'train_samples': 8000, 'training_date': '...'},
                  '_training_active': True, '_training_symbol': 'ETHUSDT'}
+            roi: Monthly ROI in percent (e.g. 5.3 means +5.3%). Optional.
 
         Returns:
             True if sent successfully
@@ -703,6 +705,16 @@ class TelegramNotifier:
             # Add daily trade count if provided
             if daily_trades is not None:
                 message += f"📊 <b>{self.t('daily_trades', 'Сделок сегодня')}:</b> <code>{daily_trades}</code>\n"
+
+            # Add ROI if provided
+            if roi is not None:
+                try:
+                    roi_float = float(roi)
+                    roi_sign = "+" if roi_float > 0 else ""
+                    roi_emoji = "📈" if roi_float > 0 else "📉" if roi_float < 0 else "➖"
+                    message += f"{roi_emoji} <b>{self.t('roi', 'ROI (месяц)')}:</b> <code>{roi_sign}{roi_float:.2f}%</code>\n"
+                except (ValueError, TypeError):
+                    pass
 
             # Indicate when key metrics are unchanged since the last hourly report.
             # This is expected and normal when the bot is in scanning mode with no open

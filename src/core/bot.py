@@ -741,6 +741,17 @@ class TradingBot:
                 # Collect ML model metrics for the notification
                 ml_status = self._collect_ml_status()
 
+                # Compute monthly ROI from balance snapshots
+                monthly_roi = None
+                try:
+                    start_balance = self.db.get_start_of_month_balance()
+                    usdt_val = balance_data.get('USDT')
+                    current_usdt = float(usdt_val if usdt_val is not None else balance_data.get('BUSD', 0))
+                    if start_balance and start_balance > 0 and current_usdt > 0:
+                        monthly_roi = (current_usdt - start_balance) / start_balance * 100
+                except Exception as e:
+                    self.logger.warning(f"Could not compute monthly ROI: {e}")
+
                 # Send notification with AI tactics info, trends, strategy adjustments,
                 # Elite AI data, news, and ML model status
                 self.notifier.notify_hourly_summary(
@@ -753,7 +764,8 @@ class TradingBot:
                     elite_ai_data=self.elite_ai_data if hasattr(self, 'elite_ai_data') else None,
                     news_summary=news_summary,
                     daily_trades=daily_trades,
-                    ml_status=ml_status
+                    ml_status=ml_status,
+                    roi=monthly_roi
                 )
 
                 # Update last notification time
