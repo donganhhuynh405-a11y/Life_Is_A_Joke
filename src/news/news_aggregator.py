@@ -306,14 +306,17 @@ class NewsAggregator:
         """Parse various date formats and return ISO 8601 UTC string for consistent DB storage/comparison"""
         if not date_str:
             return datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
-        # Already ISO-like format (e.g. from CryptoPanic/NewsAPI: "2026-02-25T12:30:00Z")
-        if len(date_str) >= 1 and date_str[0].isdigit():
-            for fmt in ('%Y-%m-%dT%H:%M:%SZ', '%Y-%m-%dT%H:%M:%S', '%Y-%m-%d %H:%M:%S', '%Y-%m-%d'):
-                try:
-                    dt = datetime.strptime(date_str, fmt)
-                    return dt.strftime('%Y-%m-%d %H:%M:%S')
-                except ValueError:
-                    continue
+        # Handle ISO 8601 formats including those with milliseconds/microseconds and
+        # timezone offsets (e.g. "2026-02-25T12:30:00.000Z", "2026-02-25T12:30:00+00:00").
+        # datetime.fromisoformat() handles all ISO variants; replace 'Z' for compat.
+        if date_str and date_str[0].isdigit():
+            try:
+                normalized = date_str.replace('Z', '+00:00')
+                dt = datetime.fromisoformat(normalized)
+                dt_utc = dt.astimezone(timezone.utc).replace(tzinfo=None)
+                return dt_utc.strftime('%Y-%m-%d %H:%M:%S')
+            except ValueError:
+                pass
         # Try RFC 2822 format (used by RSS feeds, e.g. "Mon, 25 Feb 2026 12:00:00 +0000")
         try:
             dt = parsedate_to_datetime(date_str)
