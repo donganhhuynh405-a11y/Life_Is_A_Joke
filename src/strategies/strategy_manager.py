@@ -197,14 +197,10 @@ class StrategyManager:
                                 f"USDT balance from balance['USDT']['free']: {usdt_balance}")
                         else:
                             self.logger.warning(
-                                f"Unexpected balance structure. Balance keys: {
-                                    list(
-                                        balance.keys())}")
+                                f"Unexpected balance structure. Balance keys: {list(balance.keys())}")
                             if 'free' in balance:
                                 self.logger.warning(
-                                    f"Type of balance['free']: {
-                                        type(
-                                            balance.get('free'))}")
+                                    f"Type of balance['free']: {type(balance.get('free'))}")
                     except (TypeError, ValueError, AttributeError) as e:
                         self.logger.error(f"Error extracting USDT balance: {e}", exc_info=True)
 
@@ -521,14 +517,10 @@ class StrategyManager:
                                 f"USDT balance from balance['USDT']['free']: {usdt_balance}")
                         else:
                             self.logger.warning(
-                                f"Unexpected balance structure. Balance keys: {
-                                    list(
-                                        balance.keys())}")
+                                f"Unexpected balance structure. Balance keys: {list(balance.keys())}")
                             if 'free' in balance:
                                 self.logger.warning(
-                                    f"Type of balance['free']: {
-                                        type(
-                                            balance.get('free'))}")
+                                    f"Type of balance['free']: {type(balance.get('free'))}")
                     except (TypeError, ValueError, AttributeError) as e:
                         self.logger.error(f"Error extracting USDT balance: {e}", exc_info=True)
 
@@ -705,8 +697,7 @@ class StrategyManager:
                 notifier = get_notifier()
                 if notifier:
                     notifier.notify_error(
-                        "Sell Order Failed", str(e), f"Symbol: {
-                            signal.get('symbol')}")
+                        "Sell Order Failed", str(e), f"Symbol: {signal.get('symbol')}")
             except Exception as notif_error:
                 self.logger.error(
                     f"Failed to send error notification: {notif_error}",
@@ -752,13 +743,11 @@ class StrategyManager:
             # Avoid closing positions at a loss unless it's a stop-loss or take-profit trigger
             if potential_pnl < 0 and not is_stop_loss and not is_take_profit:
                 self.logger.info(
-                    f"Skipping close of {symbol} position {position_id} - would result in loss of ${
-                        potential_pnl:.2f}. Reason: {reason}")
+                    f"Skipping close of {symbol} position {position_id} - would result in loss of ${potential_pnl:.2f}. Reason: {reason}")
                 return
 
             self.logger.info(
-                f"Closing {symbol} position {position_id} with potential P&L: ${
-                    potential_pnl:.2f}")
+                f"Closing {symbol} position {position_id} with potential P&L: ${potential_pnl:.2f}")
 
             # Close position on exchange
             order_id = None
@@ -804,8 +793,7 @@ class StrategyManager:
 
                         if estimated_value > 0 and estimated_value < min_order_value:
                             self.logger.warning(
-                                f"Order value ${
-                                    estimated_value:.2f} below minimum ${min_order_value}. Marking position as closed without exchange order.")
+                                f"Order value ${estimated_value:.2f} below minimum ${min_order_value}. Marking position as closed without exchange order.")
                             # Use entry_price to record zero PnL since we can't close on exchange
                             exit_price = entry_price
                         else:
@@ -834,8 +822,7 @@ class StrategyManager:
                     # Check if error is due to position not existing on exchange
                     if 'insufficient' in error_str or 'balance' in error_str or 'exceeded lower limit' in error_str:
                         self.logger.warning(
-                            f"Position {position_id} cannot be closed on exchange ({
-                                str(e)}). Marking as closed in database.")
+                            f"Position {position_id} cannot be closed on exchange ({str(e)}). Marking as closed in database.")
                         # Use entry_price to record zero PnL since trade failed to execute
                         exit_price = entry_price
                     else:
@@ -872,9 +859,7 @@ class StrategyManager:
             )
 
             self.logger.info(
-                f"Position {position_id} closed with P&L: ${
-                    pnl:.2f} ({
-                    pnl_percent:+.2f}%)")
+                f"Position {position_id} closed with P&L: ${pnl:.2f} ({pnl_percent:+.2f}%)")
 
             # Get current open positions count for notification
             open_positions_count = len(self.db.get_open_positions())
@@ -938,9 +923,7 @@ class StrategyManager:
             return (
                 False,
                 signal_confidence,
-                f"Signal confidence {
-                    signal_confidence:.0f}% below threshold {
-                    min_confidence:.0f}%")
+                f"Signal confidence {signal_confidence:.0f}% below threshold {min_confidence:.0f}%")
 
         # Check max positions
         max_positions = self.adaptive_tactics.get_max_positions()
@@ -965,9 +948,7 @@ class StrategyManager:
             multiplier = self.adaptive_tactics.tactical_overrides.get(
                 'position_size_multiplier', 1.0)
             self.logger.info(
-                f"🤖 Adaptive tactics: Adjusting position size by {multiplier}x (${
-                    base_size:.2f} → ${
-                    adjusted_size:.2f})")
+                f"🤖 Adaptive tactics: Adjusting position size by {multiplier}x (${base_size:.2f} → ${adjusted_size:.2f})")
 
         return adjusted_size
 
@@ -995,14 +976,10 @@ class StrategyManager:
                             quantity=quantity
                         )
                         self.logger.info(
-                            f"Closed position {
-                                position['id']} on exchange: Order ID {
-                                order.get('orderId')}")
+                            f"Closed position {position['id']} on exchange: Order ID {order.get('orderId')}")
                     except Exception as e:
                         self.logger.error(
-                            f"Failed to close position {
-                                position['id']} on exchange: {
-                                str(e)}")
+                            f"Failed to close position {position['id']} on exchange: {str(e)}")
 
                 # Update database
                 self.db.update_position(
