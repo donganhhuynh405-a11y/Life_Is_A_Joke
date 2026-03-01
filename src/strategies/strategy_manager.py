@@ -1026,6 +1026,8 @@ class StrategyManager:
                 symbol = position.get('symbol')
                 quantity = position.get('quantity', 0)
                 side = position.get('side', 'BUY')
+                entry_price = position.get('entry_price', 0)
+                exit_price = entry_price  # fallback: assume flat exit
 
                 # Close position on exchange
                 if self.config.trading_enabled:
@@ -1038,6 +1040,12 @@ class StrategyManager:
                             order_type='market',
                             quantity=quantity
                         )
+                        order_price = order.get('price')
+                        if order_price is not None and order_price != 'None':
+                            try:
+                                exit_price = float(order_price)
+                            except (ValueError, TypeError):
+                                pass
                         self.logger.info(
                             f"Closed position {
                                 position['id']} on exchange: Order ID {
@@ -1048,13 +1056,32 @@ class StrategyManager:
                                 position['id']} on exchange: {
                                 str(e)}")
 
+                # If we still have no real exit price, fetch the current market price
+                if exit_price == entry_price:
+                    try:
+                        ticker = self.client.get_ticker_24h(symbol)
+                        last_price = ticker.get('last_price')
+                        if last_price:
+                            exit_price = float(last_price)
+                    except Exception:
+                        pass
+
+                # Calculate PNL
+                if side == 'BUY':
+                    pnl = (exit_price - entry_price) * quantity
+                else:
+                    pnl = (entry_price - exit_price) * quantity
+
                 # Update database
                 self.db.update_position(
                     position['id'],
                     status='closed',
-                    closed_at='CURRENT_TIMESTAMP'
+                    closed_at='CURRENT_TIMESTAMP',
+                    exit_price=exit_price,
+                    pnl=pnl
                 )
-                self.logger.info(f"Closed position in database: {position['symbol']}")
+                self.logger.info(
+                    f"Closed position in database: {position['symbol']}, PNL: ${pnl:.4f}")
             except Exception as e:
                 self.logger.error(f"Error closing position {position['id']}: {str(e)}")
 
