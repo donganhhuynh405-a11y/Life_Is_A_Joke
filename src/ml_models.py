@@ -441,9 +441,7 @@ class TransformerPredictor:
             )
 
             logger.info(
-                f'Transformer model built with {
-                    self.num_layers} layers, {
-                    self.heads} heads')
+                f'Transformer model built with {self.num_layers} layers, {self.heads} heads')
             return True
 
         except ImportError as e:
