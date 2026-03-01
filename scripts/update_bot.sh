@@ -30,6 +30,16 @@ BOT_DIR="/opt/trading-bot"
 SERVICE_NAME="trading-bot"
 BRANCH="main"
 
+# Parse optional --branch argument so the user can deploy a specific PR branch.
+# Usage: sudo ./scripts/update_bot.sh --branch copilot/update-notification-format
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        --branch|-b) BRANCH="$2"; shift ;;
+        *) echo "Unknown parameter: $1. Use --branch <branch_name> to specify a branch."; exit 1 ;;
+    esac
+    shift
+done
+
 # Print colored message
 print_status() {
     echo -e "${BLUE}[INFO]${NC} $1"

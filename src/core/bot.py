@@ -738,8 +738,11 @@ class TradingBot:
                         self.logger.error(f"Error fetching news: {e}", exc_info=True)
                         news_summary = None
 
+                # Collect ML model metrics for the notification
+                ml_status = self._collect_ml_status()
+
                 # Send notification with AI tactics info, trends, strategy adjustments,
-                # Elite AI data, and news
+                # Elite AI data, news, and ML model status
                 self.notifier.notify_hourly_summary(
                     open_positions_count=open_positions_count,
                     balance_data=balance_data,
@@ -749,7 +752,8 @@ class TradingBot:
                     strategy_adjustments=strategy_adjustments,
                     elite_ai_data=self.elite_ai_data if hasattr(self, 'elite_ai_data') else None,
                     news_summary=news_summary,
-                    daily_trades=daily_trades
+                    daily_trades=daily_trades,
+                    ml_status=ml_status
                 )
 
                 # Update last notification time
@@ -758,6 +762,45 @@ class TradingBot:
 
         except Exception as e:
             self.logger.error(f"Error sending hourly notification: {e}", exc_info=True)
+
+    def _collect_ml_status(self) -> dict:
+        """Read ML model metrics (accuracy, F1, training date) for all symbols.
+
+        Returns a dict keyed by symbol (e.g. 'BTCUSDT') with their metrics,
+        plus optional private keys '_training_active' and '_training_symbol'.
+        """
+        import json
+        import os
+        from pathlib import Path
+
+        models_dir = Path(getattr(self.config, 'models_dir', '/var/lib/trading-bot/models'))
+        result: dict = {}
+
+        if not models_dir.exists():
+            return result
+
+        try:
+            for symbol_dir in sorted(models_dir.iterdir()):
+                if not symbol_dir.is_dir():
+                    continue
+                metrics_path = symbol_dir / 'metrics.json'
+                if not metrics_path.exists():
+                    continue
+                try:
+                    with open(metrics_path, 'r') as f:
+                        metrics = json.load(f)
+                    result[symbol_dir.name] = {
+                        'accuracy': metrics.get('accuracy', 0),
+                        'f1_score': metrics.get('f1_score', 0),
+                        'train_samples': metrics.get('train_samples', 0),
+                        'training_date': metrics.get('training_date', ''),
+                    }
+                except Exception as exc:
+                    self.logger.debug(f"Could not read ML metrics for {symbol_dir.name}: {exc}")
+        except Exception as exc:
+            self.logger.warning(f"Could not scan ML models directory: {exc}")
+
+        return result
 
     def _health_check(self):
         """Perform internal health check"""

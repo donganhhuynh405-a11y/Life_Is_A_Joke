@@ -604,7 +604,8 @@ class TelegramNotifier:
                               strategy_adjustments: Dict[str, Any] = None,
                               elite_ai_data: Dict[str, Any] = None,
                               news_summary: Dict[str, Any] = None,
-                              daily_trades: int = None) -> bool:
+                              daily_trades: int = None,
+                              ml_status: Dict[str, Any] = None) -> bool:
         """
         Send hourly status summary with trend analysis
 
@@ -619,6 +620,10 @@ class TelegramNotifier:
             elite_ai_data: Elite AI analysis data (optional)
             news_summary: Crypto news summary with AI analysis (optional)
             daily_trades: Number of trades made today (optional)
+            ml_status: ML model metrics per symbol, e.g.
+                {'BTCUSDT': {'accuracy': 0.63, 'f1_score': 0.61,
+                             'train_samples': 8000, 'training_date': '...'},
+                 '_training_active': True, '_training_symbol': 'ETHUSDT'}
 
         Returns:
             True if sent successfully
@@ -838,78 +843,93 @@ class TelegramNotifier:
                 except Exception as e:
                     self.logger.error(f"Error formatting AI tactics: {e}")
 
-            # Add Strategy Adjustments section if available
+            # Add Strategy Adjustments — show only actionable items, not generic risk level
             if strategy_adjustments is not None:
                 self.logger.info(
                     f"📊 Displaying strategy adjustments in notification: {strategy_adjustments}")
                 try:
                     adjustments = strategy_adjustments.get('adjustments', {})
                     reasoning = strategy_adjustments.get('reasoning', [])
-                    risk_level = strategy_adjustments.get('risk_level', 'normal')
 
-                    # Risk level emoji
-                    risk_emoji = {
-                        'very_low': '🟢',
-                        'low': '🟢',
-                        'normal': '🟡',
-                        'high': '🟠',
-                        'critical': '🔴'
-                    }.get(risk_level, '⚪')
+                    # Only add this section when there are real adjustments or reasoning
+                    if adjustments or reasoning:
+                        message += "\n\n⚙️ <b>Strategy Adjustments:</b>\n"
 
-                    # Translated risk level
-                    risk_level_text = {
-                        'very_low': self.t('risk_very_low', 'Very Low'),
-                        'low': self.t('risk_low', 'Low'),
-                        'normal': self.t('risk_normal', 'Normal'),
-                        'high': self.t('risk_high', 'High'),
-                        'critical': self.t('risk_critical', 'Critical')
-                    }.get(risk_level, risk_level)
+                        if adjustments:
+                            if 'position_size_multiplier' in adjustments:
+                                mult = adjustments['position_size_multiplier']
+                                message += f"  📊 Position Size: <b>{mult:.0%}</b>\n"
 
-                    message += f"\n\n📊 <b>{self.t('strategy_status', 'AI Strategy Status')}:</b>\n"
+                            # Support both 'confidence_threshold_adjustment' (StrategyAdvisor)
+                            # and 'confidence_threshold' (AdaptiveTactics) key names
+                            if 'confidence_threshold_adjustment' in adjustments:
+                                base_conf = 50.0
+                                conf = base_conf + adjustments['confidence_threshold_adjustment']
+                                conf = max(30.0, min(95.0, conf))
+                                message += f"  🎯 Min Confidence: <b>{conf:.0f}%</b>\n"
+                            elif 'confidence_threshold' in adjustments:
+                                conf = adjustments['confidence_threshold'] * 100
+                                message += f"  🎯 Min Confidence: <b>{conf:.0f}%</b>\n"
 
-                    # Always show risk level
-                    message += f"  {risk_emoji} {self.t('risk_level',
-                                                        'Risk Level')}: <b>{risk_level_text}</b>\n"
+                            # Support both 'max_positions_multiplier' and 'max_positions'
+                            if 'max_positions_multiplier' in adjustments:
+                                base_max = 5
+                                max_pos = max(1, int(base_max * adjustments['max_positions_multiplier']))
+                                message += f"  📋 Max Positions: <b>{max_pos}</b>\n"
+                            elif 'max_positions' in adjustments:
+                                max_pos = adjustments['max_positions']
+                                message += f"  📋 Max Positions: <b>{max_pos}</b>\n"
 
-                    # Show adjustments section
-                    message += f"\n  <b>{self.t('adjustments', 'Current Adjustments')}:</b>\n"
-
-                    if adjustments:
-                        if 'position_size_multiplier' in adjustments:
-                            mult = adjustments['position_size_multiplier']
-                            message += f"  📊 Position Size: <b>{mult:.0%}</b>\n"
-
-                        # Support both 'confidence_threshold_adjustment' (StrategyAdvisor)
-                        # and 'confidence_threshold' (AdaptiveTactics) key names
-                        if 'confidence_threshold_adjustment' in adjustments:
-                            base_conf = 50.0
-                            conf = base_conf + adjustments['confidence_threshold_adjustment']
-                            conf = max(30.0, min(95.0, conf))
-                            message += f"  🎯 Min Confidence: <b>{conf:.0f}%</b>\n"
-                        elif 'confidence_threshold' in adjustments:
-                            conf = adjustments['confidence_threshold'] * 100
-                            message += f"  🎯 Min Confidence: <b>{conf:.0f}%</b>\n"
-
-                        # Support both 'max_positions_multiplier' and 'max_positions'
-                        if 'max_positions_multiplier' in adjustments:
-                            base_max = 5
-                            max_pos = max(1, int(base_max * adjustments['max_positions_multiplier']))
-                            message += f"  📋 Max Positions: <b>{max_pos}</b>\n"
-                        elif 'max_positions' in adjustments:
-                            max_pos = adjustments['max_positions']
-                            message += f"  📋 Max Positions: <b>{max_pos}</b>\n"
-                    else:
-                        message += f"  ✅ {self.t('optimal_conditions',
-                                                 'Optimal trading conditions - no adjustments needed')}\n"
-
-                    # Always show reasoning if available (independent of adjustments)
-                    if reasoning and len(reasoning) > 0:
-                        message += f"\n  <b>{self.t('reasoning', 'Reasoning')}:</b>\n"
-                        for reason in reasoning[:3]:
-                            message += f"  • {reason}\n"
+                        # Always show reasoning if available (independent of adjustments)
+                        if reasoning and len(reasoning) > 0:
+                            message += "\n  <b>Reason:</b>\n"
+                            for reason in reasoning[:3]:
+                                message += f"  • {reason}\n"
 
                 except Exception as e:
                     self.logger.error(f"Error formatting strategy adjustments: {e}")
+
+            # Add ML Model Status section if available
+            if ml_status:
+                try:
+                    training_active = ml_status.get('_training_active', False)
+                    training_symbol = ml_status.get('_training_symbol', '')
+                    # Filter out private keys — only symbol-keyed metrics remain
+                    model_entries = {k: v for k, v in ml_status.items()
+                                     if not k.startswith('_') and isinstance(v, dict)}
+
+                    message += "\n\n🤖 <b>ML Models:</b>\n"
+
+                    if training_active and training_symbol:
+                        message += f"  🔄 <i>Training in progress: <b>{training_symbol}</b></i>\n"
+
+                    if model_entries:
+                        for symbol, m in list(model_entries.items())[:5]:
+                            acc = m.get('accuracy', 0)
+                            f1 = m.get('f1_score', 0)
+                            samples = m.get('train_samples', 0)
+                            trained_at = m.get('training_date', '')
+                            # Show only date part (not the full ISO timestamp)
+                            trained_date = trained_at[:10] if trained_at else '—'
+
+                            # Quality emoji
+                            if acc >= 0.65:
+                                quality = "🟢"
+                            elif acc >= 0.55:
+                                quality = "🟡"
+                            else:
+                                quality = "🔴"
+
+                            message += (
+                                f"  {quality} <code>{symbol}</code>: "
+                                f"Acc={acc:.1%} F1={f1:.1%} "
+                                f"({samples:,} samples, trained {trained_date})\n"
+                            )
+                    else:
+                        message += "  ⏳ No models trained yet\n"
+
+                except Exception as e:
+                    self.logger.error(f"Error formatting ML status: {e}")
 
             # Add Elite AI section if available
             if elite_ai_data:
