@@ -131,7 +131,10 @@ class NewsAggregator:
 
     async def _aggregation_loop(self):
         """Main aggregation loop"""
-        # Analyze existing news on first run
+        # On first run: analyze existing news and purge entries whose
+        # published_at was corrupted by the old date-parsing bug
+        # (it stored datetime.now() instead of the article's real date).
+        await self._purge_corrupted_news()
         await self._analyze_existing_news()
 
         while self.running:
@@ -422,6 +425,41 @@ class NewsAggregator:
             logger.error(f"Error saving news to database: {e}")
 
         return saved_count
+
+    async def _purge_corrupted_news(self):
+        """Delete articles whose published_at was corrupted by a previous date-parsing bug.
+
+        The old _parse_date_to_iso() fell back to datetime.now() when it could not
+        parse a date string, so it stored the fetch time as the article's publication
+        date.  The tell-tale sign is that published_at and fetched_at are within
+        60 seconds of each other.  These rows are deleted so they can be re-fetched
+        and re-stored with the correct publication date.
+        """
+        try:
+            conn = sqlite3.connect(self.db_path)
+            try:
+                cursor = conn.cursor()
+
+                cursor.execute('''
+                    DELETE FROM crypto_news
+                    WHERE ABS(
+                        CAST(strftime('%s', published_at) AS INTEGER) -
+                        CAST(strftime('%s', fetched_at)   AS INTEGER)
+                    ) < 60
+                ''')
+
+                deleted = cursor.rowcount
+                conn.commit()
+            finally:
+                conn.close()
+
+            if deleted > 0:
+                logger.info(
+                    f"Purged {deleted} news articles with corrupted published_at dates "
+                    "(published_at ≈ fetched_at — they will be re-fetched with correct dates)"
+                )
+        except Exception as e:
+            logger.error(f"Error purging corrupted news: {e}")
 
     async def _cleanup_old_news(self):
         """Remove news older than 7 days"""
