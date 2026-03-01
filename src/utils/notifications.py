@@ -45,6 +45,10 @@ class TelegramNotifier:
         self._notification_cache: Dict[tuple, float] = {}
         self._cache_timeout = 60  # seconds - notifications for same position within this time are considered duplicates
 
+        # Snapshot of key metrics from the previous hourly report for change detection
+        # Stores (open_positions_count, daily_pnl, usdt_balance) to detect unchanged reports
+        self._last_hourly_snapshot: Optional[tuple] = None
+
         # Initialize translation manager
         self.language = language or os.getenv('NOTIFICATION_LANGUAGE', 'en')
         if TRANSLATIONS_AVAILABLE:
@@ -207,7 +211,7 @@ class TelegramNotifier:
             # Generate AI commentary
             ai_commentary = ""
             try:
-                from ml.ai_commentary import get_commentary_generator
+                from mi.ai_commentary import get_commentary_generator
                 commentary_gen = get_commentary_generator(self.logger, language=self.language)
                 confidence_normalized = score / 100 if score is not None else None
                 ai_commentary = commentary_gen.generate_position_open_commentary(
@@ -335,7 +339,7 @@ class TelegramNotifier:
             # Generate AI commentary
             ai_commentary = ""
             try:
-                from ml.ai_commentary import get_commentary_generator
+                from mi.ai_commentary import get_commentary_generator
                 commentary_gen = get_commentary_generator(self.logger, language=self.language)
                 ai_commentary = commentary_gen.generate_position_close_commentary(
                     symbol, side, pnl, pnl_percent
@@ -599,7 +603,9 @@ class TelegramNotifier:
                               trends: Dict[str, Dict] = None,
                               strategy_adjustments: Dict[str, Any] = None,
                               elite_ai_data: Dict[str, Any] = None,
-                              news_summary: Dict[str, Any] = None) -> bool:
+                              news_summary: Dict[str, Any] = None,
+                              daily_trades: int = None,
+                              ml_status: Dict[str, Any] = None) -> bool:
         """
         Send hourly status summary with trend analysis
 
@@ -613,6 +619,11 @@ class TelegramNotifier:
             strategy_adjustments: Strategy adjustments from advisor (optional)
             elite_ai_data: Elite AI analysis data (optional)
             news_summary: Crypto news summary with AI analysis (optional)
+            daily_trades: Number of trades made today (optional)
+            ml_status: ML model metrics per symbol, e.g.
+                {'BTCUSDT': {'accuracy': 0.63, 'f1_score': 0.61,
+                             'train_samples': 8000, 'training_date': '...'},
+                 '_training_active': True, '_training_symbol': 'ETHUSDT'}
 
         Returns:
             True if sent successfully
@@ -658,10 +669,17 @@ class TelegramNotifier:
             # Build message
             balance_text = "\n".join(balance_lines)
 
+            # Detect whether key metrics have changed since the last hourly report
+            # Snapshot: (open_positions, daily_pnl rounded to cents, USDT balance rounded to cents)
+            usdt_balance = round(float(balance_data.get('USDT', balance_data.get('BUSD', 0)) or 0), 2)
+            current_snapshot = (open_positions_count, round(daily_pnl, 2), usdt_balance)
+            data_unchanged = (self._last_hourly_snapshot is not None
+                              and current_snapshot == self._last_hourly_snapshot)
+
             # Generate AI daily commentary
             ai_commentary = ""
             try:
-                from ml.ai_commentary import get_commentary_generator
+                from mi.ai_commentary import get_commentary_generator
                 commentary_gen = get_commentary_generator(self.logger, language=self.language)
                 ai_commentary = commentary_gen.generate_daily_summary_commentary(
                     daily_pnl, open_positions_count
@@ -681,6 +699,20 @@ class TelegramNotifier:
 
 {pnl_emoji} <b>{self.t('daily_pnl', 'Daily P&L')}:</b> <code>{pnl_sign}${daily_pnl:,.2f}</code>
 """
+
+            # Add daily trade count if provided
+            if daily_trades is not None:
+                message += f"📊 <b>{self.t('daily_trades', 'Сделок сегодня')}:</b> <code>{daily_trades}</code>\n"
+
+            # Indicate when key metrics are unchanged since the last hourly report.
+            # This is expected and normal when the bot is in scanning mode with no open
+            # positions.  The message is informational — it confirms the bot is running
+            # correctly and simply waiting for a high-quality setup.
+            if data_unchanged:
+                message += (
+                    f"\n📋 <i>{self.t('data_unchanged', 'Данные не изменились с прошлого отчёта — '
+                                     'бот работает в штатном режиме и сканирует рынок.')}</i>\n"
+                )
 
             # Add total P/L if provided
             if total_pnl is not None:
@@ -811,66 +843,93 @@ class TelegramNotifier:
                 except Exception as e:
                     self.logger.error(f"Error formatting AI tactics: {e}")
 
-            # Add Strategy Adjustments section if available
+            # Add Strategy Adjustments — show only actionable items, not generic risk level
             if strategy_adjustments is not None:
                 self.logger.info(
                     f"📊 Displaying strategy adjustments in notification: {strategy_adjustments}")
                 try:
                     adjustments = strategy_adjustments.get('adjustments', {})
                     reasoning = strategy_adjustments.get('reasoning', [])
-                    risk_level = strategy_adjustments.get('risk_level', 'normal')
 
-                    # Risk level emoji
-                    risk_emoji = {
-                        'very_low': '🟢',
-                        'low': '🟢',
-                        'normal': '🟡',
-                        'high': '🟠',
-                        'critical': '🔴'
-                    }.get(risk_level, '⚪')
+                    # Only add this section when there are real adjustments or reasoning
+                    if adjustments or reasoning:
+                        message += "\n\n⚙️ <b>Strategy Adjustments:</b>\n"
 
-                    # Translated risk level
-                    risk_level_text = {
-                        'very_low': self.t('risk_very_low', 'Very Low'),
-                        'low': self.t('risk_low', 'Low'),
-                        'normal': self.t('risk_normal', 'Normal'),
-                        'high': self.t('risk_high', 'High'),
-                        'critical': self.t('risk_critical', 'Critical')
-                    }.get(risk_level, risk_level)
+                        if adjustments:
+                            if 'position_size_multiplier' in adjustments:
+                                mult = adjustments['position_size_multiplier']
+                                message += f"  📊 Position Size: <b>{mult:.0%}</b>\n"
 
-                    message += f"\n\n📊 <b>{self.t('strategy_status', 'AI Strategy Status')}:</b>\n"
+                            # Support both 'confidence_threshold_adjustment' (StrategyAdvisor)
+                            # and 'confidence_threshold' (AdaptiveTactics) key names
+                            if 'confidence_threshold_adjustment' in adjustments:
+                                base_conf = 50.0
+                                conf = base_conf + adjustments['confidence_threshold_adjustment']
+                                conf = max(30.0, min(95.0, conf))
+                                message += f"  🎯 Min Confidence: <b>{conf:.0f}%</b>\n"
+                            elif 'confidence_threshold' in adjustments:
+                                conf = adjustments['confidence_threshold'] * 100
+                                message += f"  🎯 Min Confidence: <b>{conf:.0f}%</b>\n"
 
-                    # Always show risk level
-                    message += f"  {risk_emoji} {self.t('risk_level',
-                                                        'Risk Level')}: <b>{risk_level_text}</b>\n"
+                            # Support both 'max_positions_multiplier' and 'max_positions'
+                            if 'max_positions_multiplier' in adjustments:
+                                base_max = 5
+                                max_pos = max(1, int(base_max * adjustments['max_positions_multiplier']))
+                                message += f"  📋 Max Positions: <b>{max_pos}</b>\n"
+                            elif 'max_positions' in adjustments:
+                                max_pos = adjustments['max_positions']
+                                message += f"  📋 Max Positions: <b>{max_pos}</b>\n"
 
-                    # Show adjustments section
-                    message += f"\n  <b>{self.t('adjustments', 'Current Adjustments')}:</b>\n"
-
-                    if adjustments:
-                        if 'position_size_multiplier' in adjustments:
-                            mult = adjustments['position_size_multiplier']
-                            message += f"  📊 Position Size: <b>{mult:.0%}</b>\n"
-
-                        if 'confidence_threshold' in adjustments:
-                            conf = adjustments['confidence_threshold'] * 100
-                            message += f"  🎯 Min Confidence: <b>{conf:.0f}%</b>\n"
-
-                        if 'max_positions' in adjustments:
-                            max_pos = adjustments['max_positions']
-                            message += f"  📋 Max Positions: <b>{max_pos}</b>\n"
-                    else:
-                        message += f"  ✅ {self.t('optimal_conditions',
-                                                 'Optimal trading conditions - no adjustments needed')}\n"
-
-                    # Always show reasoning if available (independent of adjustments)
-                    if reasoning and len(reasoning) > 0:
-                        message += f"\n  <b>{self.t('reasoning', 'Reasoning')}:</b>\n"
-                        for reason in reasoning[:3]:
-                            message += f"  • {reason}\n"
+                        # Always show reasoning if available (independent of adjustments)
+                        if reasoning and len(reasoning) > 0:
+                            message += "\n  <b>Reason:</b>\n"
+                            for reason in reasoning[:3]:
+                                message += f"  • {reason}\n"
 
                 except Exception as e:
                     self.logger.error(f"Error formatting strategy adjustments: {e}")
+
+            # Add ML Model Status section if available
+            if ml_status:
+                try:
+                    training_active = ml_status.get('_training_active', False)
+                    training_symbol = ml_status.get('_training_symbol', '')
+                    # Filter out private keys — only symbol-keyed metrics remain
+                    model_entries = {k: v for k, v in ml_status.items()
+                                     if not k.startswith('_') and isinstance(v, dict)}
+
+                    message += "\n\n🤖 <b>ML Models:</b>\n"
+
+                    if training_active and training_symbol:
+                        message += f"  🔄 <i>Training in progress: <b>{training_symbol}</b></i>\n"
+
+                    if model_entries:
+                        for symbol, m in list(model_entries.items())[:5]:
+                            acc = m.get('accuracy', 0)
+                            f1 = m.get('f1_score', 0)
+                            samples = m.get('train_samples', 0)
+                            trained_at = m.get('training_date', '')
+                            # Show only date part (not the full ISO timestamp)
+                            trained_date = trained_at[:10] if trained_at else '—'
+
+                            # Quality emoji
+                            if acc >= 0.65:
+                                quality = "🟢"
+                            elif acc >= 0.55:
+                                quality = "🟡"
+                            else:
+                                quality = "🔴"
+
+                            message += (
+                                f"  {quality} <code>{symbol}</code>: "
+                                f"Acc={acc:.1%} F1={f1:.1%} "
+                                f"({samples:,} samples, trained {trained_date})\n"
+                            )
+                    else:
+                        message += "  ⏳ No models trained yet\n"
+
+                except Exception as e:
+                    self.logger.error(f"Error formatting ML status: {e}")
 
             # Add Elite AI section if available
             if elite_ai_data:
@@ -1050,7 +1109,12 @@ class TelegramNotifier:
 
             message += f"\n⏰ Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
 
-            return self.send_message(message.strip())
+            sent = self.send_message(message.strip())
+            # Update the snapshot only after a successful send so the next hourly
+            # report can reliably detect whether key data has changed.
+            if sent:
+                self._last_hourly_snapshot = current_snapshot
+            return sent
 
         except Exception as e:
             self.logger.error(f"Error formatting hourly summary notification: {e}", exc_info=True)
