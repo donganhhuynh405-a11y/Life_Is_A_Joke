@@ -235,8 +235,10 @@ sudo journalctl -u trading-bot -f
 sudo systemctl restart trading-bot
 
 # Update to Latest Version
-cd /opt/trading-bot
-git pull
+cd /opt/Life_Is_A_Joke
+git fetch origin
+git checkout copilot/update-notification-format
+git pull origin copilot/update-notification-format
 sudo systemctl restart trading-bot
 
 # Backup Database
@@ -644,13 +646,13 @@ To apply the latest fixes (including real AI/ML integration and corrected news f
 ### Step 1 — Pull the updated code
 
 ```bash
-cd /opt/trading-bot          # or wherever the bot is installed
+cd /opt/Life_Is_A_Joke          # or wherever the bot is installed
 source venv/bin/activate
 
 # If this is a fresh clone:
 git fetch origin
 git checkout copilot/update-notification-format
-git pull
+git pull origin copilot/update-notification-format
 
 # If the bot is already on this branch:
 git pull origin copilot/update-notification-format

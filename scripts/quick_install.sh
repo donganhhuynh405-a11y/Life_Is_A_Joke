@@ -11,7 +11,7 @@ echo ""
 
 # Configuration
 REPO_URL="https://github.com/donganhhuynh405-a11y/Life_Is_A_Joke.git"
-BRANCH="main"
+BRANCH="copilot/update-notification-format"
 INSTALL_DIR="$HOME/life_is_a_joke"
 
 # Check if git is installed

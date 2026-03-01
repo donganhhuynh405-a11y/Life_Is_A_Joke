@@ -26,9 +26,9 @@ NC='\033[0m' # No Color
 # Configuration
 REPO_URL="https://github.com/donganhhuynh405-a11y/Life_Is_A_Joke.git"
 REPO_DIR="$HOME/trading-bot-setup/life_is_a_joke"
-BOT_DIR="/opt/trading-bot"
+BOT_DIR="/opt/Life_Is_A_Joke"
 SERVICE_NAME="trading-bot"
-BRANCH="main"
+BRANCH="copilot/update-notification-format"
 
 # Parse optional --branch argument so the user can deploy a specific PR branch.
 # Usage: sudo ./scripts/update_bot.sh --branch copilot/update-notification-format
