@@ -142,7 +142,8 @@ class AICommentaryGenerator:
         }
 
     def generate_position_open_commentary(self, symbol: str, side: str,
-                                          confidence: float = None) -> str:
+                                          confidence: float = None,
+                                          signal_data: dict = None) -> str:
         """
         Generate AI commentary for position opening with adaptive analysis
 
@@ -150,6 +151,7 @@ class AICommentaryGenerator:
             symbol: Trading pair symbol
             side: BUY or SELL
             confidence: Signal confidence score (0-1 or 0-100)
+            signal_data: Optional full signal dict with ml_reasoning, ml_adjustment, etc.
 
         Returns:
             Commentary string with context-aware insights
@@ -241,6 +243,42 @@ class AICommentaryGenerator:
             tactic = self._get_enhanced_tactic_comment(symbol, side, confidence, pair_stats)
             if tactic:
                 parts.append(tactic)
+
+            # ML Enhancement section
+            if signal_data and signal_data.get('ml_reasoning'):
+                reasoning = signal_data['ml_reasoning']
+                ml_adjustment = signal_data.get('ml_adjustment', 0)
+                ml_parts = []
+
+                news_boost = reasoning.get('news_sentiment', 0)
+                if news_boost != 0:
+                    sentiment_label = "bullish" if news_boost > 0 else "bearish"
+                    bullish_c = reasoning.get('bullish_count', 0)
+                    bearish_c = reasoning.get('bearish_count', 0)
+                    ml_parts.append(
+                        f"📰 Recent news: {sentiment_label} ({news_boost:+d} boost)"
+                        f" - {bullish_c} bullish, {bearish_c} bearish articles"
+                    )
+
+                pattern_boost = reasoning.get('pattern_match', 0)
+                if pattern_boost != 0:
+                    matches = reasoning.get('matches', 0)
+                    wins = reasoning.get('wins', 0)
+                    avg_pnl = reasoning.get('avg_pnl', 0.0)
+                    ml_parts.append(
+                        f"🔍 Similar patterns: {matches} found, "
+                        f"{wins}/{matches} profitable ({pattern_boost:+d} boost)"
+                        f" - Avg profit: ${avg_pnl:.2f}"
+                    )
+
+                sym_boost = reasoning.get('symbol_stats', 0)
+                if sym_boost != 0:
+                    ml_parts.append(f"📊 Symbol history: {sym_boost:+d} adjustment")
+
+                if ml_parts:
+                    adj_sign = f"+{ml_adjustment}" if ml_adjustment >= 0 else str(ml_adjustment)
+                    parts.append(f"🤖 <b>ML Enhancement ({adj_sign}):</b>")
+                    parts.extend(ml_parts)
 
             if parts:
                 header = self._t('ai_insight')
