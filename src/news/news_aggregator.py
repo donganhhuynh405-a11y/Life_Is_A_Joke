@@ -90,6 +90,16 @@ class NewsAggregator:
                 )
             ''')
 
+            # Schema migration: add fetched_at if this is an older table that lacks it.
+            # CREATE TABLE IF NOT EXISTS never modifies an existing table, so we must
+            # ALTER TABLE explicitly.  SQLite does not support ADD COLUMN IF NOT EXISTS,
+            # so we catch the OperationalError raised when the column already exists.
+            try:
+                cursor.execute('ALTER TABLE crypto_news ADD COLUMN fetched_at TIMESTAMP')
+                logger.info("Migrated crypto_news: added fetched_at column")
+            except sqlite3.OperationalError:
+                pass  # Column already exists — no action needed
+
             cursor.execute('''
                 CREATE INDEX IF NOT EXISTS idx_news_published
                 ON crypto_news(published_at DESC)
@@ -427,37 +437,43 @@ class NewsAggregator:
         return saved_count
 
     async def _purge_corrupted_news(self):
-        """Delete articles whose published_at was corrupted by a previous date-parsing bug.
+        """Detect and clear a corrupted news cache.
 
-        The old _parse_date_to_iso() fell back to datetime.now() when it could not
-        parse a date string, so it stored the fetch time as the article's publication
-        date.  The tell-tale sign is that published_at and fetched_at are within
-        60 seconds of each other.  These rows are deleted so they can be re-fetched
-        and re-stored with the correct publication date.
+        The old _parse_date_to_iso() fell back to datetime.now() when it could
+        not parse a date string, so published_at was stored as the fetch time
+        rather than the article's real publication date.  This makes all cached
+        articles appear as "just published" on every query.
+
+        We detect this symptom by checking whether the count of articles whose
+        published_at falls within the last hour is implausibly high (>50).
+        A realistic volume from all configured sources is at most ~40 articles
+        per hour, so anything above 50 is a clear sign of corruption.
+
+        When detected, the whole table is cleared so the next fetch can
+        re-populate it with correct publication dates.
         """
         try:
             conn = sqlite3.connect(self.db_path)
             try:
                 cursor = conn.cursor()
 
-                cursor.execute('''
-                    DELETE FROM crypto_news
-                    WHERE ABS(
-                        CAST(strftime('%s', published_at) AS INTEGER) -
-                        CAST(strftime('%s', fetched_at)   AS INTEGER)
-                    ) < 60
-                ''')
+                cutoff = (datetime.now(timezone.utc) - timedelta(hours=1)).strftime('%Y-%m-%d %H:%M:%S')
+                cursor.execute(
+                    'SELECT COUNT(*) FROM crypto_news WHERE published_at >= ?', (cutoff,)
+                )
+                recent_count = cursor.fetchone()[0]
 
-                deleted = cursor.rowcount
-                conn.commit()
+                if recent_count > 50:
+                    cursor.execute('DELETE FROM crypto_news')
+                    deleted = cursor.rowcount
+                    conn.commit()
+                    logger.info(
+                        f"Detected {recent_count} articles in last hour (expected <=50 — "
+                        "published_at dates were corrupted by old date-parsing bug). "
+                        f"Cleared {deleted} cached news entries; will rebuild with correct dates."
+                    )
             finally:
                 conn.close()
-
-            if deleted > 0:
-                logger.info(
-                    f"Purged {deleted} news articles with corrupted published_at dates "
-                    "(published_at ≈ fetched_at — they will be re-fetched with correct dates)"
-                )
         except Exception as e:
             logger.error(f"Error purging corrupted news: {e}")
 
