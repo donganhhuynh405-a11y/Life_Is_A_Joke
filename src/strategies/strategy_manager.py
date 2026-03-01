@@ -197,14 +197,10 @@ class StrategyManager:
                                 f"USDT balance from balance['USDT']['free']: {usdt_balance}")
                         else:
                             self.logger.warning(
-                                f"Unexpected balance structure. Balance keys: {
-                                    list(
-                                        balance.keys())}")
+                                f"Unexpected balance structure. Balance keys: {list(balance.keys())}")
                             if 'free' in balance:
                                 self.logger.warning(
-                                    f"Type of balance['free']: {
-                                        type(
-                                            balance.get('free'))}")
+                                    f"Type of balance['free']: {type(balance.get('free'))}")
                     except (TypeError, ValueError, AttributeError) as e:
                         self.logger.error(f"Error extracting USDT balance: {e}", exc_info=True)
 
@@ -521,14 +517,10 @@ class StrategyManager:
                                 f"USDT balance from balance['USDT']['free']: {usdt_balance}")
                         else:
                             self.logger.warning(
-                                f"Unexpected balance structure. Balance keys: {
-                                    list(
-                                        balance.keys())}")
+                                f"Unexpected balance structure. Balance keys: {list(balance.keys())}")
                             if 'free' in balance:
                                 self.logger.warning(
-                                    f"Type of balance['free']: {
-                                        type(
-                                            balance.get('free'))}")
+                                    f"Type of balance['free']: {type(balance.get('free'))}")
                     except (TypeError, ValueError, AttributeError) as e:
                         self.logger.error(f"Error extracting USDT balance: {e}", exc_info=True)
 
